@@ -3,14 +3,16 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = "file:./dev.db"
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model User {
   id            String    @id @default(cuid())
+  firstName     String
+  lastName      String
+  username      String    @unique
   email         String    @unique
-  name          String?
   password      String?
   emailVerified DateTime?
   image         String?
@@ -20,6 +22,7 @@ model User {
   sessions      Session[]
 }
 
+// Account, Session, VerificationToken models stay the same
 model Account {
   id                String  @id @default(cuid())
   userId            String

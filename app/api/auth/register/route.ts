@@ -1,4 +1,4 @@
-//app/api/auth/register/route.ts
+// app/api/auth/register/route.ts
 
 import { NextResponse } from 'next/server'
 import { prisma } from '../../../../lib/prisma'
@@ -6,16 +6,36 @@ import * as bcrypt from 'bcryptjs'
 
 export async function POST(request: Request) {
   try {
-    const { email, password, name } = await request.json()
+    const { firstName, lastName, username, email, password, confirmPassword } = await request.json()
 
-    // Check if user exists
-    const existingUser = await prisma.user.findUnique({
+    // Validate passwords match
+    if (password !== confirmPassword) {
+      return NextResponse.json(
+        { error: 'Passwords do not match' },
+        { status: 400 }
+      )
+    }
+
+    // Check if email exists
+    const existingEmail = await prisma.user.findUnique({
       where: { email }
     })
 
-    if (existingUser) {
+    if (existingEmail) {
       return NextResponse.json(
-        { error: 'User already exists' },
+        { error: 'Email already registered' },
+        { status: 400 }
+      )
+    }
+
+    // Check if username exists
+    const existingUsername = await prisma.user.findUnique({
+      where: { username }
+    })
+
+    if (existingUsername) {
+      return NextResponse.json(
+        { error: 'Username already taken' },
         { status: 400 }
       )
     }
@@ -26,8 +46,10 @@ export async function POST(request: Request) {
     // Create user
     const user = await prisma.user.create({
       data: {
+        firstName,
+        lastName,
+        username,
         email,
-        name,
         password: hashedPassword,
       }
     })

@@ -10,23 +10,44 @@ import NavBar from "../../../components/NavBar";
 
 export default function SignUp() {
   const router = useRouter();
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [name, setName] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
 
+    // Basic validation
+    if (password !== confirmPassword) {
+      setError("Passwords do not match");
+      return;
+    }
+
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters");
+      return;
+    }
+
     const response = await fetch("/api/auth/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password, name }),
+      body: JSON.stringify({ 
+        firstName, 
+        lastName, 
+        username, 
+        email, 
+        password,
+        confirmPassword 
+      }),
     });
 
     if (response.ok) {
-      alert("Account created! Please sign in.");
+      alert("Account created successfully! Please sign in.");
       router.push("/auth/signin");
     } else {
       const data = await response.json();
@@ -38,7 +59,7 @@ export default function SignUp() {
     <div className="min-h-screen bg-white text-black">
       <NavBar session={null} />
       <div className="flex items-center justify-center py-12">
-        <form onSubmit={handleSubmit} className="space-y-6 w-full max-w-md p-6">
+        <form onSubmit={handleSubmit} className="space-y-4 w-full max-w-md p-6">
           <div>
             <h1 className="text-2xl font-bold">Create Account</h1>
             <p className="text-gray-600 mt-2">Join AUTH-O and get started</p>
@@ -50,14 +71,40 @@ export default function SignUp() {
             </div>
           )}
 
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-2">First Name</label>
+              <input
+                type="text"
+                placeholder="John"
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                className="w-full p-3 border border-gray-300 rounded bg-white text-black"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-2">Last Name</label>
+              <input
+                type="text"
+                placeholder="Doe"
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                className="w-full p-3 border border-gray-300 rounded bg-white text-black"
+                required
+              />
+            </div>
+          </div>
+
           <div>
-            <label className="block text-sm font-medium mb-2">Name</label>
+            <label className="block text-sm font-medium mb-2">Username</label>
             <input
               type="text"
-              placeholder="Your name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
+              placeholder="johndoe"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
               className="w-full p-3 border border-gray-300 rounded bg-white text-black"
+              required
             />
           </div>
 
@@ -86,9 +133,22 @@ export default function SignUp() {
             />
           </div>
 
+          <div>
+            <label className="block text-sm font-medium mb-2">Confirm Password</label>
+            <input
+              type="password"
+              placeholder="••••••••"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              className="w-full p-3 border border-gray-300 rounded bg-white text-black"
+              required
+              minLength={6}
+            />
+          </div>
+
           <button
             type="submit"
-            className="w-full bg-green-500 text-white p-3 rounded hover:bg-green-600 font-medium"
+            className="w-full bg-green-500 text-white p-3 rounded hover:bg-green-600 font-medium mt-4"
           >
             Sign Up
           </button>
@@ -106,3 +166,4 @@ export default function SignUp() {
     </div>
   );
 }
+
