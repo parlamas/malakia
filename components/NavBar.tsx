@@ -1,4 +1,5 @@
 // components/NavBar.tsx
+
 import { Session } from "next-auth";
 import SignOutButton from "./SignOutButton";
 
@@ -13,31 +14,30 @@ export default function NavBar({ session }: NavBarProps) {
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center">
             <a href="/" className="text-xl font-bold text-black">
-              AUTH-O
+              MALAKIA COMPANY
             </a>
           </div>
           
           <div className="flex items-center space-x-4">
             {session ? (
+              // For signed-in users: Show Profile + Sign Out
               <>
-                <span className="text-black">Welcome, {session.user?.email}</span>
+                <a
+                  href="/profile"
+                  className="text-black hover:text-blue-500 px-3 py-2"
+                >
+                  Profile
+                </a>
                 <SignOutButton />
               </>
             ) : (
-              <>
-                <a
-                  href="/auth/signin"
-                  className="text-black hover:text-blue-500 px-3 py-2"
-                >
-                  Sign In
-                </a>
-                <a
-                  href="/auth/signup"
-                  className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-                >
-                  Sign Up
-                </a>
-              </>
+              // For visitors: Show ONLY Sign In button
+              <a
+                href="/auth/signin"
+                className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+              >
+                Sign In
+              </a>
             )}
           </div>
         </div>
@@ -45,3 +45,4 @@ export default function NavBar({ session }: NavBarProps) {
     </nav>
   );
 }
+
