@@ -2,8 +2,11 @@
 
 "use client";
 
+export const dynamic = "force-dynamic";
+
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import NavBar from "../../../components/NavBar";
 
 export default function SignUp() {
   const router = useRouter();
@@ -23,6 +26,7 @@ export default function SignUp() {
     });
 
     if (response.ok) {
+      alert("Account created! Please sign in.");
       router.push("/auth/signin");
     } else {
       const data = await response.json();
@@ -31,40 +35,74 @@ export default function SignUp() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center">
-      <form onSubmit={handleSubmit} className="space-y-4 w-full max-w-md p-4">
-        <h1 className="text-2xl font-bold">Sign Up</h1>
-        {error && <p className="text-red-500">{error}</p>}
-        <input
-          type="text"
-          placeholder="Name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          className="w-full p-2 border rounded"
-        />
-        <input
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className="w-full p-2 border rounded"
-          required
-        />
-        <input
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className="w-full p-2 border rounded"
-          required
-        />
-        <button
-          type="submit"
-          className="w-full bg-green-500 text-white p-2 rounded hover:bg-green-600"
-        >
-          Sign Up
-        </button>
-      </form>
+    <div className="min-h-screen bg-white text-black">
+      <NavBar session={null} />
+      <div className="flex items-center justify-center py-12">
+        <form onSubmit={handleSubmit} className="space-y-6 w-full max-w-md p-6">
+          <div>
+            <h1 className="text-2xl font-bold">Create Account</h1>
+            <p className="text-gray-600 mt-2">Join AUTH-O and get started</p>
+          </div>
+          
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+              {error}
+            </div>
+          )}
+
+          <div>
+            <label className="block text-sm font-medium mb-2">Name</label>
+            <input
+              type="text"
+              placeholder="Your name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="w-full p-3 border border-gray-300 rounded bg-white text-black"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2">Email</label>
+            <input
+              type="email"
+              placeholder="you@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full p-3 border border-gray-300 rounded bg-white text-black"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2">Password</label>
+            <input
+              type="password"
+              placeholder="••••••••"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full p-3 border border-gray-300 rounded bg-white text-black"
+              required
+              minLength={6}
+            />
+          </div>
+
+          <button
+            type="submit"
+            className="w-full bg-green-500 text-white p-3 rounded hover:bg-green-600 font-medium"
+          >
+            Sign Up
+          </button>
+
+          <div className="text-center pt-4 border-t border-gray-200">
+            <p className="text-gray-600">
+              Already have an account?{" "}
+              <a href="/auth/signin" className="text-blue-500 hover:underline font-medium">
+                Sign in
+              </a>
+            </p>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }
