@@ -1,3 +1,5 @@
+// lib/auth.ts
+
 import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@auth/prisma-adapter";
@@ -12,6 +14,7 @@ export const authOptions: NextAuthOptions = {
   pages: {
     signIn: "/auth/signin",
     error: "/auth/error",
+    verifyRequest: "/auth/verify-request", // Add this page
   },
   providers: [
     CredentialsProvider({
@@ -31,6 +34,17 @@ export const authOptions: NextAuthOptions = {
 
         if (!user || !user.password) {
           return null;
+        }
+
+        // Check if email is verified
+        if (!user.emailVerified) {
+          // Create a custom error that NextAuth can handle
+          throw new Error(
+            JSON.stringify({
+              type: "email_not_verified",
+              message: "Please verify your email before signing in."
+            })
+          );
         }
 
         const passwordMatch = await bcrypt.compare(
@@ -73,6 +87,19 @@ export const authOptions: NextAuthOptions = {
           id: token.id as string
         }
       };
+    },
+    // Handle custom errors like email not verified
+    async signIn({ user, account, profile, email, credentials }) {
+      return true;
     }
-  }
+  },
+  // Add custom error handling
+  events: {
+    async signIn(message) {
+      // Handle successful sign in
+    },
+    async signOut(message) {
+      // Handle sign out
+    },
+  },
 };
