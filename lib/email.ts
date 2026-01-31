@@ -3,15 +3,21 @@
 import nodemailer from 'nodemailer'
 
 export async function sendVerificationEmail(email: string, verificationUrl: string) {
-  console.log('Sending verification email to:', email)
-  console.log('Email host:', process.env.EMAIL_SERVER_HOST)
-  console.log('Email user:', process.env.EMAIL_SERVER_USER)
+  console.log('📧 Attempting to send verification email to:', email)
   
   // Check if environment variables are set
-  if (!process.env.EMAIL_SERVER_HOST || !process.env.EMAIL_SERVER_USER) {
-    console.error('Email environment variables are not set properly')
-    throw new Error('Email configuration missing')
+  if (!process.env.EMAIL_SERVER_HOST || !process.env.EMAIL_SERVER_USER || !process.env.EMAIL_SERVER_PASSWORD) {
+    console.log('⚠️ Email environment variables are not set properly')
+    console.log('🔗 For testing, verification URL would be:', verificationUrl)
+    console.log('ℹ️ In production, set these in .env.local:')
+    console.log('   EMAIL_SERVER_HOST, EMAIL_SERVER_USER, EMAIL_SERVER_PASSWORD')
+    
+    // Don't throw an error - just log and return
+    // This allows registration to succeed even if email fails
+    return Promise.resolve()
   }
+
+  console.log('✅ Email credentials found, attempting to send...')
 
   const transporter = nodemailer.createTransport({
     host: process.env.EMAIL_SERVER_HOST,
@@ -53,20 +59,36 @@ export async function sendVerificationEmail(email: string, verificationUrl: stri
 
   try {
     const info = await transporter.sendMail(mailOptions)
-    console.log('Email sent successfully!')
-    console.log('Message ID:', info.messageId)
-    console.log('Preview URL:', nodemailer.getTestMessageUrl(info))
-    return info
-  } catch (error) {
-    console.error('Error sending email:', error)
+    console.log('✅ Email sent successfully!')
+    console.log('📨 Message ID:', info.messageId)
     
-    // Provide more helpful error messages
-    if (error.code === 'EAUTH') {
-      throw new Error('Email authentication failed. Check your email credentials.')
-    } else if (error.code === 'ECONNECTION') {
-      throw new Error('Could not connect to email server. Check your host and port.')
-    } else {
-      throw new Error(`Failed to send email: ${error.message}`)
+    // If using Ethereal email, show preview URL
+    if (process.env.EMAIL_SERVER_HOST === 'smtp.ethereal.email') {
+      console.log('👀 Preview URL:', nodemailer.getTestMessageUrl(info))
     }
+    
+    return info
+  } catch (error: any) {
+    console.error('❌ Error sending email:', error.message)
+    
+    // Don't throw the error - just log it
+    // This allows registration to succeed even if email fails
+    console.log('⚠️ Email failed but registration will still succeed')
+    console.log('🔗 Verification URL for manual testing:', verificationUrl)
+    
+    // Provide helpful debug info
+    if (error.code === 'EAUTH') {
+      console.error('🔐 Authentication failed. Check:')
+      console.error('   - Email credentials in .env.local')
+      console.error('   - For Gmail: Use App Password, not regular password')
+      console.error('   - For Ethereal: Get new credentials at https://ethereal.email')
+    } else if (error.code === 'ECONNECTION') {
+      console.error('🌐 Connection failed. Check:')
+      console.error('   - EMAIL_SERVER_HOST and EMAIL_SERVER_PORT')
+      console.error('   - Internet connection')
+    }
+    
+    // Return resolved promise instead of throwing
+    return Promise.resolve()
   }
 }
