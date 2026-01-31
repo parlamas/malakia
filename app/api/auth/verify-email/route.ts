@@ -1,67 +1,79 @@
 // app/api/auth/verify-email/route.ts
 
 import { NextResponse } from 'next/server'
-import { prisma } from '../../../..//lib/prisma'
+import { prisma } from '../../../../lib/prisma'
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
     const token = searchParams.get('token')
-    const email = searchParams.get('email')
-
-    if (!token || !email) {
+    
+    console.log('Verification request received')
+    console.log('Token from URL:', token)
+    
+    if (!token) {
+      console.error('Missing token parameter')
       return NextResponse.json(
         { error: 'Missing verification parameters' },
         { status: 400 }
       )
     }
 
-    // Find verification token
-    const verificationToken = await prisma.verificationToken.findUnique({
-      where: { token }
+    // Find the verification token
+    console.log('Looking for token in database...')
+    const verificationToken = await prisma.verificationToken.findFirst({
+      where: {
+        token,
+        expires: {
+          gt: new Date(), // Not expired
+        }
+      }
     })
+
+    console.log('Found token:', verificationToken)
 
     if (!verificationToken) {
+      console.error('Token not found or expired')
       return NextResponse.json(
-        { error: 'Invalid or expired verification token' },
+        { error: 'Invalid or expired token' },
         { status: 400 }
       )
     }
 
-    // Check if token is expired
-    if (verificationToken.expires < new Date()) {
-      return NextResponse.json(
-        { error: 'Verification token has expired' },
-        { status: 400 }
-      )
-    }
-
-    // Check if token matches email
-    if (verificationToken.identifier !== email) {
-      return NextResponse.json(
-        { error: 'Invalid verification token' },
-        { status: 400 }
-      )
-    }
-
-    // Update user emailVerified
-    await prisma.user.update({
-      where: { email },
-      data: { emailVerified: new Date() }
+    // Update user's email verification status
+    console.log('Updating user:', verificationToken.identifier)
+    const updatedUser = await prisma.user.update({
+      where: { email: verificationToken.identifier },
+      data: { 
+        emailVerified: new Date(),
+      }
     })
 
-    // Delete used token
+    console.log('User updated:', updatedUser.email)
+
+    // Delete the used token
     await prisma.verificationToken.delete({
-      where: { token }
+      where: { id: verificationToken.id }
     })
 
-    // Redirect to success page
-    return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/auth/verification-success`)
-  } catch (error) {
+    console.log('Token deleted successfully')
+
+    // Redirect to success page instead of returning JSON
+    return NextResponse.redirect(
+      new URL('/auth/verification-success', request.url)
+    )
+
+  } catch (error: any) {
     console.error('Verification error:', error)
-    return NextResponse.json(
-      { error: 'Verification failed' },
-      { status: 500 }
+    console.error('Error details:', {
+      message: error.message,
+      code: error.code,
+      stack: error.stack
+    })
+    
+    // Redirect to error page or show error
+    return NextResponse.redirect(
+      new URL('/auth/verification-error', request.url)
     )
   }
 }
