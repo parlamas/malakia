@@ -89,7 +89,6 @@ export default function SignUp() {
         <form onSubmit={handleSubmit} className="space-y-4 w-full max-w-md p-6">
           <div>
             <h1 className="text-2xl font-bold">Create Account</h1>
-            <p className="text-gray-600 mt-2">Join AUTH-O and get started</p>
           </div>
           
           {error && (
