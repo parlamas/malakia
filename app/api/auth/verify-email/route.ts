@@ -7,15 +7,14 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
     const token = searchParams.get('token')
-    
+
     console.log('Verification request received')
     console.log('Token from URL:', token)
-    
+
     if (!token) {
       console.error('Missing token parameter')
-      return NextResponse.json(
-        { error: 'Missing verification parameters' },
-        { status: 400 }
+      return NextResponse.redirect(
+        new URL('/auth/verification-error?error=missing-token', request.url)
       )
     }
 
@@ -34,9 +33,8 @@ export async function GET(request: Request) {
 
     if (!verificationToken) {
       console.error('Token not found or expired')
-      return NextResponse.json(
-        { error: 'Invalid or expired token' },
-        { status: 400 }
+      return NextResponse.redirect(
+        new URL('/auth/verification-error?error=invalid-token', request.url)
       )
     }
 
@@ -51,14 +49,20 @@ export async function GET(request: Request) {
 
     console.log('User updated:', updatedUser.email)
 
-    // Delete the used token
+    // Delete the used token using the composite unique constraint
+    console.log('Deleting token...')
     await prisma.verificationToken.delete({
-      where: { id: verificationToken.id }
+      where: {
+        identifier_token: {
+          identifier: verificationToken.identifier,
+          token: verificationToken.token
+        }
+      }
     })
 
     console.log('Token deleted successfully')
 
-    // Redirect to success page instead of returning JSON
+    // Redirect to success page
     return NextResponse.redirect(
       new URL('/auth/verification-success', request.url)
     )
@@ -71,9 +75,10 @@ export async function GET(request: Request) {
       stack: error.stack
     })
     
-    // Redirect to error page or show error
+    // Redirect to error page
     return NextResponse.redirect(
-      new URL('/auth/verification-error', request.url)
+      new URL('/auth/verification-error?error=server-error', request.url)
     )
   }
 }
+
