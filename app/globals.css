@@ -1,26 +1,21 @@
 /* app/globals.css */
+
+/* app/globals.css */
 @import "tailwindcss";
 
 * {
-  margin: 0 !important;
-  padding: 0 !important;
+  margin: 0;
+  padding: 0;
   box-sizing: border-box;
 }
 
 html, body {
-  margin: 0 !important;
-  padding: 0 !important;
   background: #ffffff;
   color: #000000;
 }
 
 body {
   min-height: 100vh;
-}
-
-p, h1, h2, h3, h4, h5, h6, div, section, article, nav, header, footer {
-  margin: 0 !important;
-  padding: 0 !important;
 }
 
 /* Your utility classes */
@@ -38,3 +33,4 @@ p, h1, h2, h3, h4, h5, h6, div, section, article, nav, header, footer {
 .black { background-color: #b0e0b6; color: black; font-weight: bold; padding: 2px; border-radius: 5px; }
 .wow1 { background-color: brown; color: beige; font-weight: bold; padding: 2px; border-radius: 5px; }
 .wow33 { background-color: #0047AB; color: orange; font-weight: bold; padding: 2px; border-radius: 5px; }
+
