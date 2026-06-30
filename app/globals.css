@@ -1,20 +1,40 @@
+/* app/globals.css */
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #000000;
+* {
+  margin: 0 !important;
+  padding: 0 !important;
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0 !important;
+  padding: 0 !important;
+  background: #ffffff;
+  color: #000000;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
+  min-height: 100vh;
 }
 
-input, textarea, select {
-  color: #000000;
-  background-color: #ffffff;
+p, h1, h2, h3, h4, h5, h6, div, section, article, nav, header, footer {
+  margin: 0 !important;
+  padding: 0 !important;
 }
 
-input::placeholder {
-  color: #666666;
-}
+/* Your utility classes */
+.r { color: red; font-weight: bold; }
+.b { color: blue; font-weight: bold; }
+.br { color: brown; font-weight: bold; }
+.ub { border-bottom: 2px solid blue; padding-bottom: 1px; }
+.ull { border-bottom: 2px solid lime; padding-bottom: 1px; }
+.ur { border-bottom: 2px solid red; padding-bottom: 1px; }
+.urd { border-bottom: 6px double red; padding-bottom: 1px; }
+.abc { border-bottom: 6px double lime; padding-bottom: 1px; }
+
+.wow { background-color: beige; color: brown; font-weight: bold; padding: 2px; border-radius: 5px; }
+.regress { background-color: #27f59f; color: black; font-weight: bold; padding: 2px; border-radius: 5px; }
+.black { background-color: #b0e0b6; color: black; font-weight: bold; padding: 2px; border-radius: 5px; }
+.wow1 { background-color: brown; color: beige; font-weight: bold; padding: 2px; border-radius: 5px; }
+.wow33 { background-color: #0047AB; color: orange; font-weight: bold; padding: 2px; border-radius: 5px; }

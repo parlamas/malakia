@@ -21,7 +21,7 @@ function ErrorContent() {
 
   return (
     <div className="min-h-screen bg-white text-black">
-      <NavBar session={null} />
+      <NavBar />
       <div className="flex items-center justify-center py-12">
         <div className="w-full max-w-md p-6">
           <h1 className="text-2xl font-bold mb-4">Authentication Error</h1>
@@ -61,7 +61,7 @@ export default function AuthError() {
   return (
     <Suspense fallback={
       <div className="min-h-screen bg-white text-black">
-        <NavBar session={null} />
+        <NavBar />
         <div className="flex items-center justify-center py-12">
           <div className="w-full max-w-md p-6">
             <div className="animate-pulse">Loading...</div>

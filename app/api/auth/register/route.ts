@@ -97,7 +97,15 @@ export async function POST(request: Request) {
 
     // Send verification email
     try {
-      const verificationUrl = `${process.env.NEXTAUTH_URL}/api/verify-email?token=${token}`
+      // Add cache busting to prevent cached errors
+      const cacheBuster = Date.now()
+      const verificationUrl = `${process.env.APP_URL}/api/verify-email?token=${token}&_cb=${cacheBuster}`
+
+      
+      console.log('🔗 Generated verification URL with cache busting:', verificationUrl)
+      console.log('📧 APP_URL:', process.env.APP_URL)
+
+      
       await sendVerificationEmail(email, verificationUrl)
     } catch (emailError) {
       console.error('Failed to send verification email:', emailError)
@@ -109,12 +117,19 @@ export async function POST(request: Request) {
       { 
         message: 'User created successfully. Please check your email to verify your account.',
         userId: user.id,
-        requiresVerification: true
+        requiresVerification: true,
+        // Include in development for testing
+        ...(process.env.NODE_ENV === 'development' && {
+          debug: {
+            verificationUrl: `${process.env.APP_URL}/api/verify-email?token=${token}`,
+            note: 'Add &_cb=[timestamp] for cache busting in production'
+          }
+        })
       },
       { status: 201 }
     )
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Registration error:', error)
     
     // Handle specific Prisma errors

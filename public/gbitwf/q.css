@@ -1,0 +1,299 @@
+sub {color:red; font-weight:normal;}
+
+.r {color:red; font-weight:bold;}
+.b {color:blue; font-weight:bold;}
+.br {color: brown; font-weight: bold;}
+.ub {border-bottom: 2px solid blue; padding-bottom: 1px;}
+.ur {border-bottom: 2px solid red; padding-bottom: 1px;}
+.wow {background-color:beige; color:brown; font-weight:bold; padding:2px; border-radius:5px;}
+.regress {background-color:#27f59f; color:black; font-weight:bold; padding:2px; border-radius:5px;}
+.black {background-color:#b0e0b6; color:black; font-weight:bold; padding:2px; border-radius:5px;}
+
+.dub {
+  border-bottom: 6px double beige;
+  padding-bottom: 1px;
+}
+
+
+
+.cd {
+  margin: 1em 0;
+  padding: 1em 1em;
+  border-left: 4px solid #333;
+  background-color: #f9f9f9;
+  font-size: 12pt;
+  line-height: 1.6;
+  font-style: italic;
+  position: relative;
+  padding-bottom:0;
+  padding-top:0;
+}
+
+/* Show the manually defined number from the data attribute */
+.cd::before {
+  content: "Definition " attr(data-def);
+  display: block;
+  margin-bottom: 0.5em;
+  font-weight: bold;
+  font-style: normal;
+  color: #000;
+}
+
+/* Style the defined term in red */
+.cd strong {
+  font-weight: bold;
+  font-style: normal;
+  color: red;
+}
+
+
+
+.cdh {
+  margin: 1em 0;
+  padding: 1em 1em;
+  border-left: 4px solid #333;
+  background-color: #f9f9f9;
+  font-size: 12pt;
+  line-height: 1.6;
+  font-style: italic;
+  position: relative;
+  padding-bottom:0;
+  padding-top:0;
+}
+
+/* Show the manually defined number from the data attribute */
+.cdh::before {
+  content: "Ορισμός " attr(data-def);
+  display: block;
+  margin-bottom: 0.5em;
+  font-weight: bold;
+  font-style: normal;
+  color: #000;
+}
+
+/* Style the defined term in red */
+.cdh strong {
+  font-weight: bold;
+  font-style: normal;
+  color: red;
+}
+
+/*examples*/
+
+.ex {
+  margin: 1em 0;
+  padding: 1em 1em;
+  border-left: 4px solid #0057a3; /* blue edge */
+  background-color: #aedff7;      /* light blue background */
+  font-size: 12pt;
+  line-height: 1.6;
+  font-style: italic;
+  position: relative;
+  padding-bottom:0;
+  padding-top:0;
+}
+
+/* Label the example using data-def, now as "Example X" */
+.ex::before {
+  content: "Example " attr(data-def);
+  display: block;
+  margin-bottom: 0.5em;
+  font-weight: bold;
+  font-style: normal;
+  color: #003d66; /* darker blue */
+}
+
+/* Style the highlighted term in dark blue */
+.ex strong {
+  font-weight: bold;
+  font-style: normal;
+  color: #0057a3;
+}
+
+
+.exh {
+  margin: 1em 0;
+  padding: 1em 1em;
+  border-left: 4px solid #0057a3; /* blue edge */
+  background-color: #aedff7;      /* light blue background */
+  font-size: 12pt;
+  line-height: 1.6;
+  font-style: italic;
+  position: relative;
+  padding-bottom:0;
+  padding-top:0;
+}
+
+/* Label the example using data-def, now as "Example X" */
+.exh::before {
+  content: "Παράδειγμα " attr(data-def);
+  display: block;
+  margin-bottom: 0.5em;
+  font-weight: bold;
+  font-style: normal;
+  color: #0057a3; /* darker blue */
+}
+
+/* Style the highlighted term in dark blue */
+.exh strong {
+  font-weight: bold;
+  font-style: normal;
+  color: #0057a3;
+}
+
+
+/* beginning of didactic value English */
+.dv {
+  margin: 1em 0;
+  padding: 1em 1em;
+  border-left: 4px solid #4a7023; /* olive green */
+  background-color: #fefdeb;      /* light warm background */
+  font-size: 12pt;
+  line-height: 1.6;
+  font-style: italic;
+  position: relative;
+  padding-bottom:0;
+  padding-top:0;
+}
+
+/* Numbered heading above the box using data attribute */
+.dv::before {
+  content: "Didactic Value " attr(data-dv);
+  display: block;
+  margin-bottom: 0.5em;
+  font-weight: bold;
+  font-style: normal;
+  color: #4a7023; /* matching the border color */
+}
+
+
+.dvh {
+  margin: 1em 0;
+  padding: 1em 1em;
+  border-left: 4px solid #4a7023; /* olive green */
+  background-color: #fefdeb;      /* light warm background */
+  font-size: 12pt;
+  line-height: 1.6;
+  font-style: italic;
+  position: relative;
+  padding-bottom:0;
+  padding-top:0;
+}
+
+/* Numbered heading above the box using data attribute */
+.dvh::before {
+  content: "Διδακτική Αξία " attr(data-dv);
+  display: block;
+  margin-bottom: 0.5em;
+  font-weight: bold;
+  font-style: normal;
+  color: #4a7023; /* matching the border color */
+}
+
+/*end of didactic value English*/
+
+
+
+
+/* beginning of proof English */
+
+
+.pr {
+  margin: 1em 0;
+  padding: 1em 1em;
+  border-left: 4px solid brown;
+  background-color: cyan;
+  font-size: 12pt;
+  line-height: 1.6;
+  font-style: italic;
+  position: relative;
+  padding-bottom:0;
+  padding-top:0;
+}
+
+/* Show the manually defined number from the data attribute */
+.pr::before {
+  content: "Proof " attr(data-def);
+  display: block;
+  margin-bottom: 0.5em;
+  font-weight: bold;
+  font-style: normal;
+  color: brown;
+}
+
+/* Style the defined term in red */
+.pf strong {
+  font-weight: bold;
+  font-style: normal;
+  color: brown;
+}
+
+
+
+.prh {
+  margin: 1em 0;
+  padding: 1em 1em;
+  border-left: 4px solid brown;
+  background-color: cyan;
+  font-size: 12pt;
+  line-height: 1.6;
+  font-style: italic;
+  position: relative;
+  padding-bottom:0;
+  padding-top:0;
+}
+
+/* Show the manually defined number from the data attribute */
+.prh::before {
+  content: "Απόδειξη " attr(data-def);
+  display: block;
+  margin-bottom: 0.5em;
+  font-weight: bold;
+  font-style: normal;
+  color: brown;
+}
+
+/* Style the defined term in red */
+.pfh strong {
+  font-weight: bold;
+  font-style: normal;
+  color: brown;
+}
+
+
+/*end of proof English*/
+
+
+
+
+
+/*image and text wrapped around it*/
+
+.wrapped-figure {
+  float: left; right or left */
+  width: 320px; /* adjust based on your image size */
+  margin: 1em 1em 1em 1em;
+  text-align: center;
+}
+
+.wrapped-figure img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+}
+
+.wrapped-figure figcaption {
+  font-size: 11pt;
+  color: #555;
+  margin-top: 0.4em;
+}
+
+
+.dashed-box {
+  border: 2px dashed #333;  /* dashed border */
+  padding: 15px;            /* space inside */
+  margin: 20px 0;           /* space outside */
+  border-radius: 8px;       /* rounded corners (optional) */
+  background-color: #f9f9f9; /* subtle background (optional) */
+}

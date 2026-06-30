@@ -84,7 +84,7 @@ export default function SignUp() {
 
   return (
     <div className="min-h-screen bg-white text-black">
-      <NavBar session={null} />
+      <NavBar />
       <div className="flex items-center justify-center py-12">
         <form onSubmit={handleSubmit} className="space-y-4 w-full max-w-md p-6">
           <div>

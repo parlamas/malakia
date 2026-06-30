@@ -1,48 +1,109 @@
 // components/NavBar.tsx
 
-import { Session } from "next-auth";
-import SignOutButton from "./SignOutButton";
+"use client"
 
-interface NavBarProps {
-  session: Session | null;
-}
+import { useEffect, useState } from "react"
+import SignOutButton from "./SignOutButton"
+import Link from "next/link"
 
-export default function NavBar({ session }: NavBarProps) {
+export default function NavBar() {
+  const [user, setUser] = useState<{
+    authenticated: boolean
+    username?: string
+  } | null>(null)
+
+  const [isMenuOpen, setIsMenuOpen] = useState(false)
+
+  useEffect(() => {
+    fetch("/api/auth/me", { credentials: "include" })
+      .then(res => res.json())
+      .then(data => {
+        setUser(data)
+      })
+      .catch(() => {
+        setUser({ authenticated: false })
+      })
+  }, [])
+
   return (
-    <nav className="border-b border-gray-200 bg-white">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
-          <div className="flex items-center">
-            <a href="/" className="text-xl font-bold text-black">
-              MALAKIA COMPANY
-            </a>
-          </div>
-          
-          <div className="flex items-center space-x-4">
-            {session ? (
-              // For signed-in users: Show Profile + Sign Out
-              <>
-                <a
-                  href="/profile"
-                  className="text-black hover:text-blue-500 px-3 py-2"
-                >
-                  Profile
-                </a>
-                <SignOutButton />
-              </>
-            ) : (
-              // For visitors: Show ONLY Sign In button
-              <a
-                href="/auth/signin"
-                className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-              >
-                Sign In
-              </a>
-            )}
+    <nav className="bg-[#f5f5dc] w-full">
+      
+      {/* Main Navbar */}
+<div className="w-full h-16 flex items-center justify-between relative">
+  
+  {/* Left spacer - 100px from left edge */}
+  <div style={{ width: '100px' }}></div>
+  
+  {/* Left Section */}
+  <div className="flex items-center gap-4 absolute left-[100px]">
+    {/* Burger Button */}
+    <button
+      onClick={() => setIsMenuOpen(!isMenuOpen)}
+      className="text-gray-600 hover:text-blue-600 transition-colors p-2"
+      aria-label="Toggle menu"
+    >
+      {isMenuOpen ? (
+        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      ) : (
+        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
+      )}
+    </button>
+
+    {/* Home Icon */}
+    <Link href="/" className="text-gray-600 hover:text-blue-600 transition-colors">
+      <svg
+        className="w-6 h-6"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
+        />
+      </svg>
+    </Link>
+  </div>
+
+  {/* Right Section */}
+  <div className="flex items-center absolute right-[100px]">
+    {user === null ? null : user.authenticated ? (
+      <div className="flex items-center gap-4">
+        <span className="text-black font-medium">
+          {user.username}
+        </span>
+        <SignOutButton />
+      </div>
+    ) : (
+      <Link
+        href="/auth/signin"
+        className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors"
+      >
+        Sign In
+      </Link>
+    )}
+  </div>
+  
+  {/* Right spacer - 100px from right edge */}
+  <div style={{ width: '100px' }}></div>
+</div>
+
+      {/* Dropdown */}
+      {isMenuOpen && (
+        <div className="border-t border-gray-200 bg-[#f5f5dc]">
+          <div className="px-[100px] py-3">
+            <div className="text-gray-500 text-sm">
+              Menu is open
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </nav>
-  );
+  )
 }
-

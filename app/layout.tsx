@@ -4,12 +4,21 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
+import NavBar from "../components/NavBar";
 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "AUTH-O | Authentication System",
-  description: "Your authentication system",
+  title: "MALAKIA",
+  description: "Μαλακία",
+  icons: {
+    icon: [
+      {
+        url: '/favicon.svg',
+        type: 'image/svg+xml',
+      }
+    ],
+  },
 };
 
 export default function RootLayout({
@@ -18,9 +27,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="bg-white">
-      <body className={`${inter.className} bg-white text-black`}>
-        <Providers>{children}</Providers>
+    <html lang="en" className="bg-white m-0 p-0">
+      <body className={`${inter.className} bg-white text-black m-0 p-0`}>
+        <Providers>
+          <NavBar />
+          {children}
+        </Providers>
       </body>
     </html>
   );

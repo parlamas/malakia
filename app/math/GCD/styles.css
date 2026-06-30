@@ -1,0 +1,1480 @@
+/*app/math/GCD/styles.css*/
+
+/* Main page styles */
+.lcm-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #333;
+}
+
+.page-header {
+  text-align: center;
+  margin-bottom: 3rem;
+  color: white;
+}
+
+.page-header h1 {
+  font-size: 3rem;
+  margin-bottom: 0.5rem;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.page-header .subtitle {
+  font-size: 1.2rem;
+  opacity: 0.9;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.content-grid {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 2rem;
+  margin-bottom: 3rem;
+}
+
+@media (max-width: 1024px) {
+  .content-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Calculator Section */
+.calculator-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.calculator-card,
+.result-card,
+.visualization-card {
+  background: white;
+  border-radius: 16px;
+  padding: 1.5rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+  transition: transform 0.3s ease;
+}
+
+.calculator-card:hover,
+.result-card:hover,
+.visualization-card:hover {
+  transform: translateY(-5px);
+}
+
+.calculator-card h2 {
+  margin: 0 0 0.5rem 0;
+  color: #4a5568;
+}
+
+.instruction {
+  color: #718096;
+  margin-bottom: 1.5rem;
+  font-size: 0.9rem;
+}
+
+.number-inputs {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.input-with-button {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.number-input {
+  flex: 1;
+  padding: 0.75rem;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+}
+
+.number-input:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.remove-button {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: #fc8181;
+  color: white;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.3s ease;
+}
+
+.remove-button:hover {
+  background: #f56565;
+}
+
+.input-label {
+  font-size: 0.8rem;
+  color: #718096;
+  text-align: center;
+}
+
+.calculator-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.add-button {
+  padding: 0.75rem;
+  background: #68d391;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background 0.3s ease;
+}
+
+.add-button:hover {
+  background: #48bb78;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 1rem;
+}
+
+.calculate-button,
+.reset-button {
+  flex: 1;
+  padding: 0.875rem;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.calculate-button {
+  background: #667eea;
+  color: white;
+}
+
+.calculate-button:hover:not(:disabled) {
+  background: #5a67d8;
+}
+
+.calculate-button:disabled {
+  background: #cbd5e0;
+  cursor: not-allowed;
+}
+
+.reset-button {
+  background: #edf2f7;
+  color: #4a5568;
+}
+
+.reset-button:hover {
+  background: #e2e8f0;
+}
+
+/* Result Card */
+.result-card h3 {
+  margin: 0 0 1rem 0;
+  color: #4a5568;
+}
+
+.lcm-result {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.5rem;
+}
+
+.lcm-result .label {
+  color: #718096;
+}
+
+.lcm-result .value {
+  color: #667eea;
+  font-weight: 700;
+  font-size: 2rem;
+}
+
+/* Visualization Section */
+.visualization-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.visualization-controls {
+  background: white;
+  border-radius: 16px;
+  padding: 1rem 1.5rem;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.control-group {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.control-group label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #4a5568;
+  cursor: pointer;
+}
+
+.speed-control {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: #4a5568;
+}
+
+.speed-control input[type="range"] {
+  width: 150px;
+}
+
+.step-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.step-controls button {
+  padding: 0.5rem 1rem;
+  border: 2px solid #e2e8f0;
+  background: white;
+  color: #4a5568;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.step-controls button:hover:not(:disabled) {
+  border-color: #667eea;
+  background: #667eea;
+  color: white;
+}
+
+.step-controls button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.step-counter {
+  padding: 0.5rem 1rem;
+  background: #edf2f7;
+  border-radius: 6px;
+  font-weight: 500;
+  min-width: 120px;
+  text-align: center;
+}
+
+/* Visualization Card */
+.visualization-card .step-header {
+  margin-bottom: 1.5rem;
+}
+
+.visualization-card h3 {
+  margin: 0 0 0.5rem 0;
+  color: #4a5568;
+}
+
+.progress-bar {
+  height: 6px;
+  background: #e2e8f0;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #667eea, #764ba2);
+  border-radius: 3px;
+  transition: width 0.5s ease;
+}
+
+.explanation-box {
+  background: #f7fafc;
+  border-left: 4px solid #667eea;
+  padding: 1rem;
+  border-radius: 0 8px 8px 0;
+  margin-bottom: 1.5rem;
+}
+
+.explanation-box p {
+  margin: 0;
+  color: #4a5568;
+  line-height: 1.6;
+}
+
+.visualization-area {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.numbers-area h4,
+.lcm-area h4 {
+  margin: 0 0 1rem 0;
+  color: #4a5568;
+  text-align: center;
+}
+
+.numbers-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1rem;
+}
+
+.number-card {
+  background: #f7fafc;
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 1rem;
+  text-align: center;
+  transition: all 0.3s ease;
+}
+
+.number-card:hover {
+  border-color: #667eea;
+  box-shadow: 0 5px 15px rgba(102, 126, 234, 0.1);
+}
+
+.original-number {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #667eea;
+  margin-bottom: 0.75rem;
+}
+
+.factors-display {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+  min-height: 40px;
+  align-items: center;
+}
+
+.factor-bubble {
+  background: #68d391;
+  color: white;
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-weight: 600;
+  animation: float-up 0.5s ease-out var(--delay) forwards;
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+.factor-bubble.moving {
+  animation: move-to-lcm 1s ease-out forwards;
+}
+
+.factor-bubble sup {
+  font-size: 0.7em;
+  margin-left: 1px;
+}
+
+.empty-factors {
+  color: #a0aec0;
+  font-style: italic;
+  font-size: 0.9rem;
+}
+
+.lcm-construction {
+  background: #f0fff4;
+  border: 2px dashed #68d391;
+  border-radius: 12px;
+  padding: 1.5rem;
+  text-align: center;
+}
+
+.current-lcm {
+  font-size: 1.5rem;
+  color: #2f855a;
+  margin-bottom: 1rem;
+  font-weight: 600;
+}
+
+.common-factors {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: center;
+  min-height: 60px;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.common-factor {
+  background: #667eea;
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 25px;
+  font-weight: 600;
+  font-size: 1.1rem;
+  animation: pop-in 0.3s ease-out;
+}
+
+.common-factor sup {
+  font-size: 0.8em;
+  margin-left: 2px;
+}
+
+.empty-common {
+  color: #a0aec0;
+  font-style: italic;
+  padding: 1rem;
+}
+
+.final-lcm {
+  background: white;
+  border-radius: 8px;
+  padding: 1rem;
+  border: 2px solid #667eea;
+}
+
+.result-label {
+  color: #718096;
+  font-size: 0.9rem;
+  margin-bottom: 0.25rem;
+}
+
+.result-value {
+  color: #667eea;
+  font-size: 2.5rem;
+  font-weight: 700;
+}
+
+.factor-flow {
+  text-align: center;
+  margin-top: 1rem;
+  color: #718096;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.flow-arrow {
+  font-size: 2rem;
+  animation: bounce 1s infinite;
+}
+
+.flow-text {
+  font-size: 0.9rem;
+}
+
+.empty-state {
+  background: white;
+  border-radius: 16px;
+  padding: 3rem 2rem;
+  text-align: center;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+}
+
+.empty-icon {
+  font-size: 4rem;
+  margin-bottom: 1rem;
+}
+
+.empty-state h3 {
+  margin: 0 0 0.5rem 0;
+  color: #4a5568;
+}
+
+.empty-state p {
+  color: #718096;
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+/* Explanation Section */
+.explanation-section {
+  background: white;
+  border-radius: 16px;
+  padding: 2rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+}
+
+.explanation-section h3 {
+  margin: 0 0 1rem 0;
+  color: #4a5568;
+  text-align: center;
+}
+
+.explanation-content {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.explanation-content p {
+  color: #4a5568;
+  line-height: 1.6;
+  margin-bottom: 1rem;
+}
+
+.explanation-content ol {
+  margin: 1rem 0;
+  padding-left: 1.5rem;
+  color: #4a5568;
+}
+
+.explanation-content li {
+  margin-bottom: 0.5rem;
+  line-height: 1.6;
+}
+
+/* Animations */
+@keyframes float-up {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes move-to-lcm {
+  0% {
+    opacity: 1;
+    transform: translate(0, 0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--tx, 0), var(--ty, -100px)) scale(0.5);
+  }
+}
+
+@keyframes pop-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+/* Add these styles to your existing styles.css */
+
+/* Moving factor animation */
+.moving-factor-element {
+  transition: all 0.5s ease-out;
+}
+
+.factor-bubble.moving {
+  animation: pulse 0.5s infinite alternate;
+  box-shadow: 0 0 20px rgba(102, 126, 234, 0.5);
+}
+
+@keyframes pulse {
+  from {
+    transform: scale(1);
+    box-shadow: 0 0 10px rgba(102, 126, 234, 0.3);
+  }
+  to {
+    transform: scale(1.1);
+    box-shadow: 0 0 25px rgba(102, 126, 234, 0.7);
+  }
+}
+
+/* Enhanced factor flow */
+.factor-flow.active .flow-arrow {
+  animation: bounce 0.8s infinite;
+  color: #667eea;
+}
+
+.factor-flow.active .flow-text {
+  color: #667eea;
+  font-weight: 600;
+}
+
+/* Enhanced animations */
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+/* Common factor entrance animation */
+.common-factor {
+  animation: pop-in 0.5s ease-out both;
+}
+
+@keyframes pop-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  70% {
+    transform: scale(1.1);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Number card animation */
+.number-card {
+  transition: all 0.3s ease;
+}
+
+.number-card:hover {
+  transform: translateY(-2px);
+}
+
+/* Pulse animation for current step */
+.progress-fill {
+  animation: pulse-glow 2s infinite;
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 5px rgba(102, 126, 234, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 15px rgba(102, 126, 234, 0.8);
+  }
+}
+
+/* Animate the explanation box */
+.explanation-box {
+  animation: slide-in 0.5s ease-out;
+}
+
+@keyframes slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Shake animation for empty state */
+.empty-factors {
+  animation: gentle-shake 2s infinite;
+}
+
+@keyframes gentle-shake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-2px);
+  }
+  75% {
+    transform: translateX(2px);
+  }
+}
+
+/* Student LCM Page Styles */
+.student-lcm-page {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 2rem;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  font-family: 'Segoe UI', 'Comic Sans MS', 'Chalkboard', cursive;
+}
+
+.chalk-title {
+  font-family: 'Chalkboard', 'Comic Sans MS', cursive;
+  font-size: 3.5rem;
+  text-align: center;
+  color: #2c3e50;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+  margin-bottom: 0.5rem;
+}
+
+.content-grid {
+  display: grid;
+  grid-template-columns: 350px 1fr;
+  gap: 2rem;
+  margin: 2rem 0;
+}
+
+@media (max-width: 1024px) {
+  .content-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Controls Section */
+.controls-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.controls-card {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+  border: 2px solid #e0e0e0;
+}
+
+.controls-card h2 {
+  color: #2c3e50;
+  margin-bottom: 1.5rem;
+  font-family: 'Chalkboard', cursive;
+  font-size: 1.8rem;
+}
+
+.number-inputs-student {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.student-input-group {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.student-input {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  border: 2px solid #bdc3c7;
+  border-radius: 8px;
+  font-size: 1.2rem;
+  font-family: 'Comic Sans MS', cursive;
+  background: #f8f9fa;
+  transition: all 0.3s ease;
+}
+
+.student-input:focus {
+  outline: none;
+  border-color: #3498db;
+  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+  background: white;
+}
+
+.remove-btn {
+  width: 36px;
+  height: 36px;
+  border: 2px solid #e74c3c;
+  background: white;
+  color: #e74c3c;
+  border-radius: 50%;
+  font-size: 1.2rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
+.remove-btn:hover {
+  background: #e74c3c;
+  color: white;
+}
+
+.add-btn {
+  padding: 0.75rem;
+  background: #2ecc71;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-family: 'Comic Sans MS', cursive;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.add-btn:hover {
+  background: #27ae60;
+}
+
+.control-buttons {
+  display: flex;
+  gap: 1rem;
+  margin: 1.5rem 0;
+}
+
+.calculate-btn, .reset-btn {
+  flex: 1;
+  padding: 0.875rem;
+  border: none;
+  border-radius: 8px;
+  font-family: 'Comic Sans MS', cursive;
+  font-size: 1.1rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.calculate-btn {
+  background: #3498db;
+  color: white;
+}
+
+.calculate-btn:hover:not(:disabled) {
+  background: #2980b9;
+  transform: translateY(-2px);
+}
+
+.calculate-btn:disabled {
+  background: #bdc3c7;
+  cursor: not-allowed;
+}
+
+.reset-btn {
+  background: #e74c3c;
+  color: white;
+}
+
+.reset-btn:hover {
+  background: #c0392b;
+  transform: translateY(-2px);
+}
+
+.animation-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding-top: 1rem;
+  border-top: 2px dashed #bdc3c7;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #2c3e50;
+  font-family: 'Comic Sans MS', cursive;
+  cursor: pointer;
+}
+
+.speed-control {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  color: #2c3e50;
+  font-family: 'Comic Sans MS', cursive;
+}
+
+.speed-control input[type="range"] {
+  flex: 1;
+}
+
+.result-card {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+  border: 2px solid #2ecc71;
+}
+
+.result-card h3 {
+  color: #2c3e50;
+  margin-bottom: 1rem;
+}
+
+.lcm-result {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.5rem;
+  color: #2c3e50;
+  font-family: 'Comic Sans MS', cursive;
+}
+
+.result-value {
+  font-size: 2.5rem;
+  font-weight: bold;
+  color: #e74c3c;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Student Notebook Visualization */
+.student-notebook {
+  background: #fffef0;
+  border-radius: 16px;
+  padding: 2rem;
+  box-shadow: 
+    0 10px 30px rgba(0, 0, 0, 0.15),
+    inset 0 0 100px rgba(139, 195, 74, 0.05);
+  border: 1px solid #d4d4d4;
+  position: relative;
+  overflow: hidden;
+  min-height: 600px;
+}
+
+.notebook-paper {
+  position: relative;
+  padding: 2rem;
+  background: linear-gradient(to bottom, 
+    transparent 95%, 
+    rgba(139, 195, 74, 0.1) 95%
+  );
+  background-size: 100% 40px;
+  min-height: 500px;
+}
+
+.notebook-line {
+  height: 1px;
+  background: rgba(139, 195, 74, 0.2);
+  margin: 39px 0;
+}
+
+.numbers-header {
+  display: flex;
+  gap: 4rem;
+  margin-bottom: 2rem;
+  padding-left: 3rem;
+}
+
+.number-column {
+  flex: 1;
+}
+
+.number-title {
+  font-size: 2.5rem;
+  font-weight: bold;
+  color: #2c3e50;
+  font-family: 'Chalkboard', cursive;
+  text-align: center;
+  padding: 0.5rem;
+  border-bottom: 3px solid #3498db;
+  display: inline-block;
+  min-width: 80px;
+}
+
+.multiples-rows {
+  position: relative;
+  z-index: 1;
+}
+
+.multiple-row {
+  display: flex;
+  align-items: center;
+  gap: 4rem;
+  margin-bottom: 0.5rem;
+  padding-left: 1rem;
+  height: 40px;
+}
+
+.row-number {
+  width: 2rem;
+  color: #7f8c8d;
+  font-family: 'Comic Sans MS', cursive;
+  font-size: 1rem;
+}
+
+.multiple-cell {
+  flex: 1;
+  text-align: center;
+}
+
+.multiple-number {
+  font-size: 1.8rem;
+  font-family: 'Comic Sans MS', cursive;
+  color: #2c3e50;
+  padding: 0.25rem 0.5rem;
+  display: inline-block;
+  position: relative;
+  transition: all 0.5s ease;
+}
+
+.multiple-number.latest {
+  animation: write-in 0.8s ease-out;
+  color: #e74c3c;
+  font-weight: bold;
+}
+
+@keyframes write-in {
+  0% {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.multiple-number.circled {
+  position: relative;
+  animation: highlight 1s ease-in-out infinite alternate;
+}
+
+@keyframes highlight {
+  from {
+    color: #e74c3c;
+    transform: scale(1);
+  }
+  to {
+    color: #c0392b;
+    transform: scale(1.1);
+  }
+}
+
+.circle-animation {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 50px;
+  height: 50px;
+  border: 3px solid #f39c12;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  animation: draw-circle 1.5s ease-out;
+  pointer-events: none;
+}
+
+@keyframes draw-circle {
+  0% {
+    width: 0;
+    height: 0;
+    opacity: 1;
+  }
+  100% {
+    width: 50px;
+    height: 50px;
+    opacity: 0.3;
+  }
+}
+
+.empty-space {
+  font-size: 1.5rem;
+  color: #bdc3c7;
+  font-family: 'Comic Sans MS', cursive;
+}
+
+.lcm-result-box {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 2rem;
+  padding: 1rem 2rem;
+  background: rgba(52, 152, 219, 0.1);
+  border-radius: 10px;
+  border-left: 5px solid #3498db;
+  animation: slide-in 0.8s ease-out;
+}
+
+.lcm-label {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #2c3e50;
+  font-family: 'Chalkboard', cursive;
+}
+
+.lcm-value {
+  font-size: 3rem;
+  font-weight: bold;
+  color: #e74c3c;
+  font-family: 'Comic Sans MS', cursive;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Writing Hand Animation */
+.writing-hand {
+  position: absolute;
+  width: 60px;
+  height: 60px;
+  pointer-events: none;
+  z-index: 100;
+  transition: left 0.5s ease, top 0.5s ease;
+  filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.3));
+}
+
+.hand-icon {
+  font-size: 3rem;
+  animation: hand-wiggle 0.5s ease-in-out infinite alternate;
+}
+
+@keyframes hand-wiggle {
+  0% {
+    transform: rotate(-5deg);
+  }
+  100% {
+    transform: rotate(5deg);
+  }
+}
+
+.ink-dot {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  background: #2c3e50;
+  border-radius: 50%;
+  top: 30px;
+  left: 20px;
+  animation: ink-splash 0.3s ease-out;
+}
+
+@keyframes ink-splash {
+  0% {
+    transform: scale(0);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1.5);
+    opacity: 0;
+  }
+}
+
+.ink-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 50;
+}
+
+.step-explanation {
+  margin-top: 2rem;
+  padding: 1.5rem;
+  background: rgba(52, 73, 94, 0.05);
+  border-radius: 10px;
+  border-left: 4px solid #3498db;
+}
+
+.step-title {
+  font-size: 1.3rem;
+  font-weight: bold;
+  color: #2c3e50;
+  margin-bottom: 0.5rem;
+  font-family: 'Chalkboard', cursive;
+}
+
+.step-text {
+  color: #34495e;
+  line-height: 1.6;
+  font-family: 'Comic Sans MS', cursive;
+}
+
+/* Step Controls Bar */
+.step-controls-bar {
+  background: white;
+  border-radius: 12px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.step-buttons {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.step-btn {
+  padding: 0.5rem 1rem;
+  border: 2px solid #bdc3c7;
+  background: white;
+  color: #2c3e50;
+  border-radius: 6px;
+  font-family: 'Comic Sans MS', cursive;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.step-btn:hover:not(:disabled) {
+  background: #3498db;
+  color: white;
+  border-color: #3498db;
+  transform: translateY(-2px);
+}
+
+.step-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.step-info {
+  padding: 0.5rem 1.5rem;
+  background: #ecf0f1;
+  border-radius: 20px;
+  font-family: 'Comic Sans MS', cursive;
+  font-weight: bold;
+  color: #2c3e50;
+  min-width: 150px;
+  text-align: center;
+}
+
+.empty-state {
+  background: white;
+  border-radius: 16px;
+  padding: 4rem 2rem;
+  text-align: center;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+}
+
+.empty-icon {
+  font-size: 4rem;
+  margin-bottom: 1rem;
+  animation: bounce 2s infinite;
+}
+
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.explanation-section {
+  background: white;
+  border-radius: 16px;
+  padding: 2rem;
+  margin-top: 2rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  border: 2px solid #3498db;
+}
+
+.explanation-section h3 {
+  color: #2c3e50;
+  text-align: center;
+  margin-bottom: 1.5rem;
+  font-family: 'Chalkboard', cursive;
+  font-size: 2rem;
+}
+
+.explanation-content {
+  max-width: 800px;
+  margin: 0 auto;
+  font-family: 'Comic Sans MS', cursive;
+}
+
+.explanation-content p {
+  color: #34495e;
+  line-height: 1.6;
+  margin-bottom: 1rem;
+  font-size: 1.1rem;
+}
+
+.explanation-content ol {
+  margin: 1.5rem 0;
+  padding-left: 2rem;
+  color: #34495e;
+}
+
+.explanation-content li {
+  margin-bottom: 0.75rem;
+  line-height: 1.6;
+  font-size: 1.1rem;
+  position: relative;
+  padding-left: 0.5rem;
+}
+
+/* Add these to your existing styles.css */
+
+/* Make numbers header closer to hand */
+.numbers-header {
+  margin-bottom: 0.5rem !important;
+  gap: 2rem !important;
+  padding-left: 1.5rem !important;
+}
+
+.number-title {
+  padding: 0.25rem 0.5rem !important;
+  min-width: 60px !important;
+}
+
+/* Make rows tighter */
+.multiple-row {
+  margin-bottom: 0.1rem !important;
+  gap: 2rem !important;
+  padding-left: 0.5rem !important;
+  height: 35px !important;
+}
+
+.row-number {
+  width: 1.5rem !important;
+  font-size: 0.9rem !important;
+}
+
+.multiple-number {
+  font-size: 1.5rem !important;
+  padding: 0.1rem 0.5rem !important;
+}
+
+/* Adjust hand position */
+.writing-hand {
+  transform: translate(-30px, -30px);
+}
+
+/* Make notebook paper lines closer */
+.notebook-line {
+  margin: 34px 0 !important;
+}
+
+/* Better spacing for LCM result */
+.lcm-result-box {
+  margin-top: 1.5rem !important;
+  padding: 0.75rem 1.5rem !important;
+}
+
+/* Add these styles for red LCM numbers */
+
+/* Make circled numbers (LCM candidates) red */
+.multiple-number.circled {
+  color: #e74c3c !important;
+  font-weight: bold !important;
+}
+
+/* Specific style for the actual LCM number */
+.multiple-number.lcm-number {
+  color: #c0392b !important;
+  font-weight: bold !important;
+  font-size: 1.6rem !important;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+}
+
+/* Red circle animation for LCM */
+.circle-animation {
+  border: 3px solid #e74c3c !important;
+  animation: draw-circle-red 1.5s ease-out !important;
+}
+
+@keyframes draw-circle-red {
+  0% {
+    width: 0;
+    height: 0;
+    opacity: 1;
+    border-color: #e74c3c;
+  }
+  50% {
+    border-color: #ff6b6b;
+    box-shadow: 0 0 15px rgba(231, 76, 60, 0.5);
+  }
+  100% {
+    width: 50px;
+    height: 50px;
+    opacity: 0.3;
+    border-color: #e74c3c;
+  }
+}
+
+/* Pulse animation for LCM number */
+@keyframes pulse-red {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.4);
+  }
+  70% {
+    transform: scale(1.05);
+    box-shadow: 0 0 0 10px rgba(231, 76, 60, 0);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(231, 76, 60, 0);
+  }
+}
+
+/* Apply pulse to latest LCM number */
+.multiple-number.latest {
+  animation: pulse-red 2s infinite;
+}
+
+/* Make the final LCM value in result box stand out */
+.lcm-value {
+  color: #e74c3c !important;
+  text-shadow: 2px 2px 4px rgba(231, 76, 60, 0.2) !important;
+}
+
+/* Red result card for LCM */
+.result-card {
+  border: 2px solid #e74c3c !important;
+  background: linear-gradient(135deg, #fff 0%, #ffeaea 100%) !important;
+}
+
+.result-value {
+  color: #e74c3c !important;
+  text-shadow: 2px 2px 4px rgba(231, 76, 60, 0.3) !important;
+}
+
+/* Red hand when writing LCM */
+.writing-hand.lcm-writing .hand-icon {
+  filter: hue-rotate(-30deg) saturate(1.5);
+}
+
+.writing-hand.lcm-writing .ink-dot {
+  background: #e74c3c !important;
+}
+
+/* --- override: start writing at top of the paper --- */
+.notebook-paper {
+  padding-top: 0 !important;
+  margin-top: 0 !important;
+}
+
+.numbers-header {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+}
+
+.multiples-rows {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+}
+
+/* align rows directly under the hand */
+.numbers-header {
+  margin-bottom: 0.25rem !important;
+}
+
+.multiples-rows {
+  margin-top: 0 !important;
+}

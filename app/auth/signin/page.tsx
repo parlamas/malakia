@@ -1,13 +1,12 @@
-// app/auth/signin/page.tsx
+//app/auth/signin/page.tsx
 
 "use client";
 
 export const dynamic = "force-dynamic";
 
-import { signIn } from "next-auth/react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import NavBar from "../../../components/NavBar";
+
 
 export default function SignIn() {
   const router = useRouter();
@@ -17,73 +16,53 @@ export default function SignIn() {
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-    setLoading(true);
+  e.preventDefault();
+  setError("");
+  setLoading(true);
 
-    try {
-      const result = await signIn("credentials", {
-        email,
-        password,
-        redirect: false, // Set to false to handle errors manually
-      });
+  try {
+    const res = await fetch("/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    });
 
-      if (result?.error) {
-        // Parse JSON error if it's email_not_verified
-        try {
-          const errorData = JSON.parse(result.error);
-          if (errorData.type === "email_not_verified") {
-            setError("Please verify your email before signing in. Check your inbox for the verification link.");
-          } else {
-            setError(errorData.message || "Authentication failed");
-          }
-        } catch {
-          // Regular error message
-          if (result.error === "CredentialsSignin") {
-            setError("Invalid email or password");
-          } else {
-            setError("An error occurred during sign in");
-          }
-        }
+    const data = await res.json();
+
+    if (!res.ok) {
+      if (data.error === "email_not_verified") {
+        setError("Please verify your email before signing in.");
       } else {
-        // Success - redirect to home
-        router.push("/");
-        router.refresh();
+        setError(data.error || "Sign-in failed");
       }
-    } catch (err) {
-      setError("An unexpected error occurred");
-    } finally {
-      setLoading(false);
+      return;
     }
-  };
+
+    router.push("/");
+    router.refresh();
+  } catch {
+    setError("An unexpected error occurred");
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   return (
     <div className="min-h-screen bg-white text-black">
-      <NavBar session={null} />
+      
       <div className="flex items-center justify-center py-12">
         <form onSubmit={handleSubmit} className="space-y-6 w-full max-w-md p-6">
           <div>
             <h1 className="text-2xl font-bold">Sign In</h1>
-            <p className="text-gray-600 mt-2">Enter your credentials to access your account</p>
+            <p className="text-gray-600 mt-2">
+              Enter your credentials to access your account
+            </p>
           </div>
-          
+
           {error && (
             <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
               {error}
-              {error.includes("verify your email") && (
-                <div className="mt-3">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      // TODO: Implement resend verification email
-                      alert("Resend verification email functionality coming soon");
-                    }}
-                    className="text-sm bg-blue-100 text-blue-700 px-3 py-1 rounded hover:bg-blue-200"
-                  >
-                    Resend Verification Email
-                  </button>
-                </div>
-              )}
             </div>
           )}
 
@@ -131,13 +110,16 @@ export default function SignIn() {
                 : "bg-blue-500 hover:bg-blue-600 text-white"
             }`}
           >
-            {loading ? "Signing In..." : "Sign In"}
+            Sign In
           </button>
 
           <div className="text-center pt-4 border-t border-gray-200">
             <p className="text-gray-600">
-              Don't have an account?{" "}
-              <a href="/auth/signup" className="text-blue-500 hover:underline font-medium">
+              Don&apos;t have an account?{" "}
+              <a
+                href="/auth/signup"
+                className="text-blue-500 hover:underline font-medium"
+              >
                 Sign up
               </a>
             </p>

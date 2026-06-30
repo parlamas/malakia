@@ -1,16 +1,29 @@
 // components/SignOutButton.tsx
 
-"use client";
+"use client"
 
-import { signOut } from "next-auth/react";
+import { useRouter } from "next/navigation"
 
 export default function SignOutButton() {
+  const router = useRouter()
+
+  const handleSignOut = async () => {
+    try {
+      await fetch("/api/auth/logout", {
+        method: "POST",
+      })
+    } finally {
+      router.push("/auth/signin")
+      router.refresh()
+    }
+  }
+
   return (
     <button
-      onClick={() => signOut()}
-      className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
+      onClick={handleSignOut}
+      className="bg-gray-200 text-black px-4 py-2 rounded hover:bg-gray-300"
     >
       Sign Out
     </button>
-  );
+  )
 }
