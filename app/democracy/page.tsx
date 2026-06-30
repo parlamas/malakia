@@ -48,10 +48,7 @@ export default function DemocracyPage() {
           <div className="eyebrow">An idea older than elections</div>
           <h1 className="thesis">Power, not permission.</h1>
           <p className="lede">
-            In most democracies, citizens don&apos;t exercise power — they delegate it, every
-            few years, to someone else. We&apos;re building the case for something else:
-            government by rotation, where every citizen takes their turn, and no one holds
-            power long enough for it to corrupt them.
+            There is no democracy where power is delegated to elected officials for years at a time — only governments that borrow the name. We're building the case for the real thing: government by rotation, where every citizen takes their turn, and no one holds power long enough for it to corrupt them.
           </p>
           <div className="heroMeta">
             <div>
