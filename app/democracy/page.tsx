@@ -39,6 +39,7 @@ export default function DemocracyPage() {
             <a href="#precedent">Precedent</a>
             <a href="#rotation">How It Works</a>
             <a href="#fund">Support</a>
+            <a href="/democracy/el">Ελληνικά</a>
           </nav>
         </div>
       </header>
@@ -48,7 +49,10 @@ export default function DemocracyPage() {
           <div className="eyebrow">An idea older than elections</div>
           <h1 className="thesis">Power, not permission.</h1>
           <p className="lede">
-            There is no democracy where power is delegated to elected officials for years at a time — only governments that borrow the name. We're building the case for the real thing: government by rotation, where every citizen takes their turn, and no one holds power long enough for it to corrupt them.
+            There is no democracy where power is delegated to elected officials for years
+            at a time — only governments that borrow the name. We&apos;re building the case
+            for the real thing: government by rotation, where every citizen takes their
+            turn, and no one holds power long enough for it to corrupt them.
           </p>
           <div className="heroMeta">
             <div>
@@ -197,7 +201,7 @@ export default function DemocracyPage() {
               />
               <path
                 d="M 160 160 L 296.3 188.9 A 140 140 0 0 1 235.6 283.0 Z"
-                fill="#A13D2B"
+                fill="#4A5D52"
                 className="dialSeg"
               />
               <path
@@ -245,7 +249,7 @@ export default function DemocracyPage() {
                 </div>
               </div>
               <div className="dialLegendItem">
-                <div className="dialSwatch" style={{ background: '#A13D2B' }} />
+                <div className="dialSwatch" style={{ background: '#4A5D52' }} />
                 <div>
                   <h4>Law enforcement — 2 weeks</h4>
                   <p>Community policing duties rotate the same way, under standardized training all citizens complete in advance.</p>
