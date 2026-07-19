@@ -4,3 +4,7 @@ node_modules/
 *.db
 .vercel/
 .env
+.env*.local
+out/
+.DS_Store
+npm-debug.log*
