@@ -1,4 +1,4 @@
-// middleware.ts
+//proxy.ts
 
 import { NextRequest, NextResponse } from "next/server"
 
@@ -7,7 +7,7 @@ const WINDOW_MS = Number(process.env.RATE_LIMIT_WINDOW_MS)
 
 const ipMap = new Map<string, { count: number; ts: number }>()
 
-export function middleware(req: NextRequest) {
+export function proxy(req: NextRequest) {
   if (!req.nextUrl.pathname.startsWith("/api")) {
     return NextResponse.next()
   }
