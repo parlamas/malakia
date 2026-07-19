@@ -34,6 +34,12 @@ export default function NavBar() {
   {/* Left spacer - 100px from left edge */}
   <div style={{ width: '100px' }}></div>
   
+  {/* Center brand text */}
+  <div className="absolute left-1/2 -translate-x-1/2 flex items-baseline gap-2 whitespace-nowrap">
+    <span className="text-black font-bold text-lg tracking-wide">ΜΑΛΑΚΙΑ</span>
+    <span className="text-gray-500 text-sm">means CALLOUSNESS</span>
+  </div>
+
   {/* Left Section */}
   <div className="flex items-center gap-4 absolute left-[100px]">
     {/* Burger Button */}
