@@ -12,7 +12,7 @@ export default function Home() {
   const quotes = [
     {
       text: "1 ... ἢ ἔρωτα ἤ τι λυπηρὸν οὐκ ἀνδρείου, ἀλλὰ μᾶλλον δειλοῦ: μαλακία γὰρ τὸ φεύγειν τὰ ἐπίπονα, καὶ οὐχ ὅτι καλὸν ...",
-      citation: "(Ἀριστοτέλης - Νικομάχεια Ἠθική - βιβλίο 7)"
+      citation: "(Ἀριστοτέλης - Νικομάχεια Ἠθική - βιβλίο 3)"
     },
     {
       text: "2 ... ἐν ἐξουσίᾳ μᾶλλον ὄντες ἢ ὅλως οἱ ἀδυνατώτεροι: πάντα γὰρ μαλακίας σημεῖα. καὶ τὸ ὑφ᾽ ἑτέρου εὖ πάσχειν, καὶ τὸ ...",
@@ -44,7 +44,7 @@ export default function Home() {
     },
     {
       text: "9 ... τε δὲ ἔσεσθε ὑπερβαλόμενοι τοὺς ἐναντίους εἶναι ἐλεύθεροι: εἰ δὲ μαλακίῃ τε καὶ ἀταξίῃ διαχρήσησθε, οὐδεμίαν ὑμέων ἔχω ἐλπίδα μὴ ...",
-      citation: "(Ἱστορίαι Ἡροδότου - Histories Book VII, chapter 9b)"
+      citation: "(Ἱστορίαι Ἡροδότου - Histories Book VI, chapter 11)"
     },
     {
       text: "10 ... ἐπηκολούθησαν δὲ διώκοντες Αἰθίοπες καὶ μαλακίας ὑπολαβόντες τὸ μὴ κρατεῖν ἁπάσης τῆς Αἰγύπτου τῆς χώρας ...",
@@ -297,7 +297,7 @@ export default function Home() {
         }}>
           1 ... ἢ ἔρωτα ἤ τι λυπηρὸν οὐκ ἀνδρείου, ἀλλὰ μᾶλλον δειλοῦ: <span style={{ color: 'lime', fontWeight: 'bold' }}>μαλακία</span> γὰρ τὸ φεύγειν τὰ ἐπίπονα, καὶ οὐχ ὅτι καλὸν ...<br />... or love, or some painful thing, not (the mark) of a courageous man, but rather of a coward; for <span className="abc">malakia</span> is the fleeing of what is toilsome, and not because it is noble ...
           <div style={{ marginTop: '10px', fontSize: '14px', fontStyle: 'italic', color: '#F5F5DC', opacity: '0.9' }}>
-            (Ἀριστοτέλης - Νικομάχεια Ἠθική - βιβλίο 7 • Aristotle - Nicomachean Ethics - book 7)
+            (Ἀριστοτέλης - Νικομάχεια Ἠθική - βιβλίο 3 • Aristotle - Nicomachean Ethics - book 3)
           </div>
         </div>
 
@@ -433,7 +433,7 @@ export default function Home() {
         }}>
           9 ... τε δὲ ἔσεσθε ὑπερβαλόμενοι τοὺς ἐναντίους εἶναι ἐλεύθεροι: εἰ δὲ <span style={{ color: 'lime', fontWeight: 'bold' }}>μαλακίῃ</span> τε καὶ ἀταξίῃ διαχρήσησθε, οὐδεμίαν ὑμέων ἔχω ἐλπίδα μὴ ...<br />... and you will surpass your enemies and be free; but if you conduct yourselves with <span className="abc">malakia</span> and disorder, I have no hope for you that ...
           <div style={{ marginTop: '10px', fontSize: '14px', fontStyle: 'italic', color: '#F5F5DC', opacity: '0.9' }}>
-            (Ἱστορίαι Ἡροδότου • Histories Book VII, chapter 9b)
+            (Ἱστορίαι Ἡροδότου • Histories Book VI, chapter 11)
           </div>
         </div>
 
