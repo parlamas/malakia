@@ -26,35 +26,34 @@ export default function NavBar() {
 
   return (
     <nav className="bg-[#f5f5dc] w-full">
-      
-      <div className="w-full h-16 flex items-center justify-between relative">
-        
-        <div style={{ width: '100px' }}></div>
-        
-        <div className="absolute left-1/2 -translate-x-1/2 flex items-baseline gap-2 whitespace-nowrap">
+
+      <div className="w-full h-16 flex items-center px-4">
+
+        {/* Burger — all the way left */}
+        <button
+          onClick={() => setIsMenuOpen(!isMenuOpen)}
+          className="text-gray-600 hover:text-blue-600 transition-colors p-2 flex-shrink-0"
+          aria-label="Toggle menu"
+        >
+          {isMenuOpen ? (
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          ) : (
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          )}
+        </button>
+
+        {/* Brand text — centered, only thing else visible on mobile */}
+        <div className="flex-1 flex justify-center items-baseline gap-2 whitespace-nowrap overflow-hidden px-2">
           <span className="text-black font-bold text-lg tracking-wide">ΜΑΛΑΚΙΑ</span>
-          <span className="text-gray-500 text-sm">means CALLOUSNESS</span>
+          <span className="text-gray-500 text-sm hidden sm:inline">means CALLOUSNESS</span>
         </div>
 
-        <div className="flex items-center absolute left-[100px]">
-          <button
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
-            className="text-gray-600 hover:text-blue-600 transition-colors p-2"
-            aria-label="Toggle menu"
-          >
-            {isMenuOpen ? (
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            ) : (
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
-            )}
-          </button>
-        </div>
-
-        <div className="flex items-center absolute right-[100px]">
+        {/* Sign in / user — hidden on mobile, moves into burger menu instead */}
+        <div className="hidden sm:flex items-center flex-shrink-0">
           {user === null ? null : user.authenticated ? (
             <div className="flex items-center gap-4">
               <span className="text-black font-medium">
@@ -71,13 +70,14 @@ export default function NavBar() {
             </Link>
           )}
         </div>
-        
-        <div style={{ width: '100px' }}></div>
+
+        {/* Reserves symmetric space on desktop so brand text stays centered; collapses on mobile */}
+        <div className="hidden sm:block flex-shrink-0" style={{ width: '0px' }}></div>
       </div>
 
       {isMenuOpen && (
         <div className="border-t border-gray-200 bg-[#f5f5dc]">
-          <div className="px-[100px] py-3 flex flex-col gap-3">
+          <div className="px-4 py-3 flex flex-col gap-3">
             <Link
               href="/"
               className="text-gray-700 hover:text-blue-600 transition-colors text-sm"
@@ -92,6 +92,26 @@ export default function NavBar() {
             >
               Classic malakia quotes
             </Link>
+
+            {/* Sign in / user — lives here on mobile since it's hidden from the bar itself */}
+            <div className="sm:hidden pt-2 border-t border-gray-200">
+              {user === null ? null : user.authenticated ? (
+                <div className="flex items-center gap-4">
+                  <span className="text-black font-medium text-sm">
+                    {user.username}
+                  </span>
+                  <SignOutButton />
+                </div>
+              ) : (
+                <Link
+                  href="/auth/signin"
+                  className="text-blue-600 text-sm"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Sign In
+                </Link>
+              )}
+            </div>
           </div>
         </div>
       )}
