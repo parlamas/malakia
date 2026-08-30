@@ -27,12 +27,12 @@ export default function NavBar() {
   return (
     <nav className="bg-[#f5f5dc] w-full">
 
-      <div className="w-full h-16 flex items-center px-4">
+      <div className="w-full h-16 flex items-center px-5 sm:px-4 gap-2">
 
-        {/* Burger — nudged in from the edge with pl-2 */}
+        {/* Burger — real left margin, separate from container padding */}
         <button
           onClick={() => setIsMenuOpen(!isMenuOpen)}
-          className="text-gray-600 hover:text-blue-600 transition-colors p-2 pl-2 flex-shrink-0"
+          className="text-gray-600 hover:text-blue-600 transition-colors p-2 ml-2 flex-shrink-0"
           aria-label="Toggle menu"
         >
           {isMenuOpen ? (
@@ -47,9 +47,9 @@ export default function NavBar() {
         </button>
 
         {/* Brand text — both parts visible on mobile, "means CALLOUSNESS" just shrinks */}
-        <div className="flex-1 flex justify-center items-baseline gap-1 sm:gap-2 whitespace-nowrap overflow-hidden px-2">
+        <div className="flex-1 flex justify-center items-baseline gap-1 sm:gap-2 whitespace-nowrap overflow-hidden">
           <span className="text-black font-bold text-base sm:text-lg tracking-wide">ΜΑΛΑΚΙΑ</span>
-          <span className="text-gray-500 text-xs sm:text-sm">means CALLOUSNESS</span>
+          <span className="text-red-600 font-bold text-xs sm:text-sm">means CALLOUSNESS</span>
         </div>
 
         {/* Sign in / user — hidden on mobile, moves into burger menu instead */}
@@ -74,7 +74,7 @@ export default function NavBar() {
 
       {isMenuOpen && (
         <div className="border-t border-gray-200 bg-[#f5f5dc]">
-          <div className="px-4 py-3 flex flex-col gap-3">
+          <div className="px-5 sm:px-4 py-3 flex flex-col gap-3">
             <Link
               href="/"
               className="text-gray-700 hover:text-blue-600 transition-colors text-sm"
