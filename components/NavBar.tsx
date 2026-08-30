@@ -29,10 +29,10 @@ export default function NavBar() {
 
       <div className="w-full h-16 flex items-center px-4">
 
-        {/* Burger — all the way left */}
+        {/* Burger — nudged in from the edge with pl-2 */}
         <button
           onClick={() => setIsMenuOpen(!isMenuOpen)}
-          className="text-gray-600 hover:text-blue-600 transition-colors p-2 flex-shrink-0"
+          className="text-gray-600 hover:text-blue-600 transition-colors p-2 pl-2 flex-shrink-0"
           aria-label="Toggle menu"
         >
           {isMenuOpen ? (
@@ -46,10 +46,10 @@ export default function NavBar() {
           )}
         </button>
 
-        {/* Brand text — centered, only thing else visible on mobile */}
-        <div className="flex-1 flex justify-center items-baseline gap-2 whitespace-nowrap overflow-hidden px-2">
-          <span className="text-black font-bold text-lg tracking-wide">ΜΑΛΑΚΙΑ</span>
-          <span className="text-gray-500 text-sm hidden sm:inline">means CALLOUSNESS</span>
+        {/* Brand text — both parts visible on mobile, "means CALLOUSNESS" just shrinks */}
+        <div className="flex-1 flex justify-center items-baseline gap-1 sm:gap-2 whitespace-nowrap overflow-hidden px-2">
+          <span className="text-black font-bold text-base sm:text-lg tracking-wide">ΜΑΛΑΚΙΑ</span>
+          <span className="text-gray-500 text-xs sm:text-sm">means CALLOUSNESS</span>
         </div>
 
         {/* Sign in / user — hidden on mobile, moves into burger menu instead */}
@@ -70,9 +70,6 @@ export default function NavBar() {
             </Link>
           )}
         </div>
-
-        {/* Reserves symmetric space on desktop so brand text stays centered; collapses on mobile */}
-        <div className="hidden sm:block flex-shrink-0" style={{ width: '0px' }}></div>
       </div>
 
       {isMenuOpen && (
