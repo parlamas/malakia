@@ -22,9 +22,12 @@ model User {
   updatedAt     DateTime  @updatedAt
   accounts      Account[]
   sessions      Session[]
+
+  posts             Post[]          @relation("PostAuthor")
+  contests           Contest[]      @relation("ContestAuthor")
+  moderatedPosts     Post[]         @relation("PostLanguageModerator")
+  auditLogEntries    AuditLogEntry[] @relation("AuditActor")
 }
-
-
 
 // Account, Session, VerificationToken models stay the same
 model Account {
@@ -72,7 +75,6 @@ model PasswordResetToken {
   @@index([identifier])
 }
 
-
 model PasswordResetRequest {
   id         String   @id @default(cuid())
   identifier String
@@ -90,3 +92,120 @@ model PasswordAuditLog {
   @@index([email])
 }
 
+// ---------------- Malakia accountability system ----------------
+
+enum PersonaCategory {
+  ELECTED_OFFICIAL
+  APPOINTED_OFFICIAL
+  JOURNALIST
+  GOVERNMENT_MEMBER // judiciary, legislature, law enforcement
+}
+
+enum Axis {
+  CALLOUS
+  CIVIC
+}
+
+enum PostStatus {
+  PENDING           // language-moderation queue
+  PUBLISHED
+  REJECTED_LANGUAGE
+  REMOVED           // post-publication takedown (legal notice, etc.)
+}
+
+enum VerificationStatus {
+  UNVERIFIED
+  ADMIN_CONFIRMED
+  DISPUTED
+}
+
+enum DisputeType {
+  DENIES_OCCURRED
+  DISPUTES_CLASSIFICATION // "wrong behavior tag"
+  DISPUTES_SCOPE          // "not in public capacity / outside tenure"
+  PROVIDES_CONTEXT
+}
+
+model Person {
+  id                  String              @id @default(cuid())
+  displayName         String
+  disambiguators      String?             // city, org, title — for name collisions
+  country             String
+  personaCategory     PersonaCategory
+  roleTitle           String
+  roleStartDate       DateTime
+  roleEndDate         DateTime?           // null = still serving
+  roleEvidenceUrl     String?
+  verificationStatus  VerificationStatus  @default(UNVERIFIED)
+
+  posts               Post[]
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+
+  @@index([displayName, country])
+}
+
+model Behavior {
+  id          String   @id @default(cuid())
+  axis        Axis
+  label       String   @unique
+  description String
+  active      Boolean  @default(true) // retire without breaking historical posts
+
+  posts       Post[]
+}
+
+model Post {
+  id                            String     @id @default(cuid())
+  authorUserId                  String
+  author                        User       @relation("PostAuthor", fields: [authorUserId], references: [id])
+
+  subjectPersonId               String
+  subject                       Person     @relation(fields: [subjectPersonId], references: [id])
+
+  axis                          Axis
+  behaviorId                    String
+  behavior                      Behavior   @relation(fields: [behaviorId], references: [id])
+
+  narrative                     String
+  evidenceUrl                   String?
+
+  conductDate                   DateTime   // validated against subject's tenure in the API layer
+  publicCapacityJustification   String
+
+  status                        PostStatus @default(PENDING)
+  languageModeratedById         String?
+  languageModeratedBy           User?      @relation("PostLanguageModerator", fields: [languageModeratedById], references: [id])
+  languageModeratedAt           DateTime?
+  rejectionReason               String?
+
+  contests                      Contest[]
+  createdAt                     DateTime   @default(now())
+
+  @@index([subjectPersonId, axis])
+}
+
+model Contest {
+  id                  String      @id @default(cuid())
+  postId              String
+  post                Post        @relation(fields: [postId], references: [id])
+
+  contestingUserId    String
+  contestingUser      User        @relation("ContestAuthor", fields: [contestingUserId], references: [id])
+
+  disputeType         DisputeType
+  justification       String
+  createdAt           DateTime    @default(now())
+}
+
+model AuditLogEntry {
+  id          String   @id @default(cuid())
+  actorUserId String
+  actor       User     @relation("AuditActor", fields: [actorUserId], references: [id])
+
+  action      String   // "post_approved" | "post_rejected_language" | "post_removed" | ...
+  targetType  String   // "Post" | "Person" | "Contest"
+  targetId    String
+  reason      String?
+  createdAt   DateTime @default(now())
+}
