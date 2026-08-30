@@ -30,24 +30,36 @@ export async function GET(
     return NextResponse.json({ error: 'Person not found' }, { status: 404 });
   }
 
+  const basePersonInfo = {
+    id: person.id,
+    displayName: person.displayName,
+    disambiguators: person.disambiguators,
+    country: person.country,
+    personaCategory: person.personaCategory,
+    roleTitle: person.roleTitle,
+    roleStartDate: person.roleStartDate,
+    roleEndDate: person.roleEndDate,
+    verificationStatus: person.verificationStatus,
+  };
+
+  // A disputed persona-eligibility claim suppresses the public record —
+  // this is the one substantive gate enforced outside language moderation,
+  // since eligibility (not truth-of-content) is what the platform verifies.
+  if (person.verificationStatus === 'DISPUTED') {
+    return NextResponse.json({
+      person: basePersonInfo,
+      record: null,
+      posts: [],
+      notice: 'This profile\'s public-persona eligibility has been disputed and its record is currently suppressed pending review.',
+    });
+  }
+
   const callousCount = person.posts.filter((p) => p.axis === 'CALLOUS').length;
   const civicCount = person.posts.filter((p) => p.axis === 'CIVIC').length;
 
   return NextResponse.json({
-    person: {
-      id: person.id,
-      displayName: person.displayName,
-      disambiguators: person.disambiguators,
-      country: person.country,
-      personaCategory: person.personaCategory,
-      roleTitle: person.roleTitle,
-      roleStartDate: person.roleStartDate,
-      roleEndDate: person.roleEndDate,
-      verificationStatus: person.verificationStatus,
-    },
+    person: basePersonInfo,
     record: {
-      // "record while in role" — never framed as current standing, per the
-      // conduct-in-role scoping decision
       callousCount,
       civicCount,
       netScore: civicCount - callousCount,
