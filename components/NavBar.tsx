@@ -49,7 +49,8 @@ export default function NavBar() {
         {/* Brand text — both parts visible on mobile, "means CALLOUSNESS" just shrinks */}
         <div className="flex-1 flex justify-center items-baseline gap-1 sm:gap-2 whitespace-nowrap overflow-hidden">
           <span className="text-black font-bold text-base sm:text-lg tracking-wide">ΜΑΛΑΚΙΑ</span>
-          <span className="text-red-600 font-bold text-xs sm:text-sm">means CALLOUSNESS</span>
+          <span className="text-black-500 font-bold text-xs sm:text-sm">means</span>
+          <span className="text-red-600 font-bold text-xs sm:text-sm">CALLOUSNESS</span>
         </div>
 
         {/* Sign in / user — hidden on mobile, moves into burger menu instead */}
