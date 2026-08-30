@@ -51,6 +51,9 @@ export default function SubmitPage() {
     disambiguators: '',
   });
 
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+
   const [status, setStatus] = useState<'idle' | 'submitting' | 'error' | 'success'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
 
@@ -76,6 +79,21 @@ export default function SubmitPage() {
     return () => clearTimeout(t);
   }, [personQuery]);
 
+  async function handlePhotoUpload(file: File) {
+    setUploadingPhoto(true);
+    setErrorMessage('');
+    const formData = new FormData();
+    formData.append('file', file);
+    const res = await fetch('/api/upload/person-photo', { method: 'POST', body: formData });
+    const data = await res.json();
+    setUploadingPhoto(false);
+    if (res.ok) {
+      setPhotoUrl(data.url);
+    } else {
+      setErrorMessage(data.error ?? 'Photo upload failed.');
+    }
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setStatus('submitting');
@@ -92,6 +110,7 @@ export default function SubmitPage() {
           roleEndDate: newPerson.roleEndDate || null,
           roleEvidenceUrl: newPerson.roleEvidenceUrl || null,
           disambiguators: newPerson.disambiguators || null,
+          photoUrl: photoUrl || null,
         };
 
     const res = await fetch('/api/posts', {
@@ -272,6 +291,21 @@ export default function SubmitPage() {
                 <input placeholder="Link supporting their public role (optional)" value={newPerson.roleEvidenceUrl}
                   onChange={(e) => setNewPerson({ ...newPerson, roleEvidenceUrl: e.target.value })}
                   style={{ ...inputStyle, marginTop: 10 }} />
+
+                <label style={dateLabel}>
+                  Photo of this person (optional)
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handlePhotoUpload(file);
+                    }}
+                    style={{ ...inputStyle, padding: '8px', marginTop: 4 }}
+                  />
+                  {uploadingPhoto && <span style={{ fontSize: 12, color: '#5F5E5A' }}>Uploading…</span>}
+                  {photoUrl && !uploadingPhoto && <span style={{ fontSize: 12, color: '#2F5D50' }}>Photo attached</span>}
+                </label>
               </>
             )}
 

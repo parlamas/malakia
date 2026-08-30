@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
     evidenceUrl,
     conductDate,
     publicCapacityJustification,
-    subject, // { existingPersonId? } OR { displayName, country, personaCategory, roleTitle, roleStartDate, roleEndDate, roleEvidenceUrl, disambiguators? }
+    subject, // { existingPersonId? } OR { displayName, country, personaCategory, roleTitle, roleStartDate, roleEndDate, roleEvidenceUrl, disambiguators?, photoUrl? }
   } = body;
 
   if (!axis || !behaviorId || !narrative || !conductDate || !publicCapacityJustification || !subject) {
@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Referenced person not found' }, { status: 404 });
     }
   } else {
-    const { displayName, country, personaCategory, roleTitle, roleStartDate, roleEndDate, roleEvidenceUrl, disambiguators } = subject;
+    const { displayName, country, personaCategory, roleTitle, roleStartDate, roleEndDate, roleEvidenceUrl, disambiguators, photoUrl } = subject;
     if (!displayName || !country || !personaCategory || !roleTitle || !roleStartDate) {
       return NextResponse.json({ error: 'Missing required subject fields' }, { status: 400 });
     }
@@ -65,6 +65,7 @@ export async function POST(req: NextRequest) {
         roleStartDate: new Date(roleStartDate),
         roleEndDate: roleEndDate ? new Date(roleEndDate) : null,
         roleEvidenceUrl,
+        photoUrl,
         verificationStatus: 'UNVERIFIED',
       },
     });
