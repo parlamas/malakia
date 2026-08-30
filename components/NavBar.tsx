@@ -27,12 +27,12 @@ export default function NavBar() {
   return (
     <nav className="bg-[#f5f5dc] w-full">
 
-      <div className="w-full h-16 flex items-center px-5 sm:px-4 gap-2">
+      <div className="w-full h-16 flex items-center pl-6 pr-5 sm:pl-6 sm:pr-4 gap-2">
 
         {/* Burger — real left margin, separate from container padding */}
         <button
           onClick={() => setIsMenuOpen(!isMenuOpen)}
-          className="text-gray-600 hover:text-blue-600 transition-colors p-2 ml-2 flex-shrink-0"
+          className="text-gray-600 hover:text-blue-600 transition-colors p-2 ml-3 flex-shrink-0"
           aria-label="Toggle menu"
         >
           {isMenuOpen ? (
@@ -75,7 +75,7 @@ export default function NavBar() {
 
       {isMenuOpen && (
         <div className="border-t border-gray-200 bg-[#f5f5dc]">
-          <div className="px-5 sm:px-4 py-3 flex flex-col gap-3">
+          <div className="pl-6 pr-5 sm:pl-6 sm:pr-4 py-3 flex flex-col gap-3">
             <Link
               href="/"
               className="text-gray-700 hover:text-blue-600 transition-colors text-sm"

@@ -136,6 +136,7 @@ model Person {
   roleStartDate       DateTime
   roleEndDate         DateTime?           // null = still serving
   roleEvidenceUrl     String?
+  photoUrl            String?
   verificationStatus  VerificationStatus  @default(UNVERIFIED)
 
   posts               Post[]
