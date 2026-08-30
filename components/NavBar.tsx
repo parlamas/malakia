@@ -68,6 +68,13 @@ export default function NavBar() {
               />
             </svg>
           </Link>
+
+          <Link
+            href="/quotes"
+            className="text-gray-600 hover:text-blue-600 transition-colors text-sm whitespace-nowrap"
+          >
+            Classic malakia quotes
+          </Link>
         </div>
 
         <div className="flex items-center absolute right-[100px]">
@@ -93,14 +100,10 @@ export default function NavBar() {
 
       {isMenuOpen && (
         <div className="border-t border-gray-200 bg-[#f5f5dc]">
-          <div className="px-[100px] py-3 flex flex-col gap-2">
-            <Link
-              href="/quotes"
-              className="text-gray-700 hover:text-blue-600 transition-colors text-sm"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              Classic malakia quotes
-            </Link>
+          <div className="px-[100px] py-3">
+            <div className="text-gray-500 text-sm">
+              Menu is open
+            </div>
           </div>
         </div>
       )}
