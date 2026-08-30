@@ -32,7 +32,8 @@ export default function NavBar() {
         {/* Burger — real left margin, separate from container padding */}
         <button
           onClick={() => setIsMenuOpen(!isMenuOpen)}
-          className="text-gray-600 hover:text-blue-600 transition-colors p-2 ml-3 flex-shrink-0"
+          className="text-gray-600 hover:text-blue-600 transition-colors p-2 flex-shrink-0"
+style={{ marginLeft: '40px' }}
           aria-label="Toggle menu"
         >
           {isMenuOpen ? (
