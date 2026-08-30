@@ -76,7 +76,7 @@ style={{ marginLeft: '40px' }}
 
       {isMenuOpen && (
         <div className="border-t border-gray-200 bg-[#f5f5dc]">
-          <div className="pl-6 pr-5 sm:pl-6 sm:pr-4 py-3 flex flex-col gap-3">
+          <div className="pr-5 sm:pr-4 py-3 flex flex-col gap-3" style={{ paddingLeft: '40px' }}>
             <Link
               href="/"
               className="text-gray-700 hover:text-blue-600 transition-colors text-sm"
