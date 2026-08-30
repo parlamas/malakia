@@ -1,5 +1,4 @@
 // components/NavBar.tsx
-
 "use client"
 
 import { useEffect, useState } from "react"
@@ -28,85 +27,80 @@ export default function NavBar() {
   return (
     <nav className="bg-[#f5f5dc] w-full">
       
-      {/* Main Navbar */}
-<div className="w-full h-16 flex items-center justify-between relative">
-  
-  {/* Left spacer - 100px from left edge */}
-  <div style={{ width: '100px' }}></div>
-  
-  {/* Center brand text */}
-  <div className="absolute left-1/2 -translate-x-1/2 flex items-baseline gap-2 whitespace-nowrap">
-    <span className="text-black font-bold text-lg tracking-wide">ΜΑΛΑΚΙΑ</span>
-    <span className="text-gray-500 text-sm">means CALLOUSNESS</span>
-  </div>
+      <div className="w-full h-16 flex items-center justify-between relative">
+        
+        <div style={{ width: '100px' }}></div>
+        
+        <div className="absolute left-1/2 -translate-x-1/2 flex items-baseline gap-2 whitespace-nowrap">
+          <span className="text-black font-bold text-lg tracking-wide">ΜΑΛΑΚΙΑ</span>
+          <span className="text-gray-500 text-sm">means CALLOUSNESS</span>
+        </div>
 
-  {/* Left Section */}
-  <div className="flex items-center gap-4 absolute left-[100px]">
-    {/* Burger Button */}
-    <button
-      onClick={() => setIsMenuOpen(!isMenuOpen)}
-      className="text-gray-600 hover:text-blue-600 transition-colors p-2"
-      aria-label="Toggle menu"
-    >
-      {isMenuOpen ? (
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-        </svg>
-      ) : (
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-        </svg>
-      )}
-    </button>
+        <div className="flex items-center gap-4 absolute left-[100px]">
+          <button
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
+            className="text-gray-600 hover:text-blue-600 transition-colors p-2"
+            aria-label="Toggle menu"
+          >
+            {isMenuOpen ? (
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            ) : (
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            )}
+          </button>
 
-    {/* Home Icon */}
-    <Link href="/" className="text-gray-600 hover:text-blue-600 transition-colors">
-      <svg
-        className="w-6 h-6"
-        fill="none"
-        stroke="currentColor"
-        viewBox="0 0 24 24"
-      >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={2}
-          d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
-        />
-      </svg>
-    </Link>
-  </div>
+          <Link href="/" className="text-gray-600 hover:text-blue-600 transition-colors">
+            <svg
+              className="w-6 h-6"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
+              />
+            </svg>
+          </Link>
+        </div>
 
-  {/* Right Section */}
-  <div className="flex items-center absolute right-[100px]">
-    {user === null ? null : user.authenticated ? (
-      <div className="flex items-center gap-4">
-        <span className="text-black font-medium">
-          {user.username}
-        </span>
-        <SignOutButton />
+        <div className="flex items-center absolute right-[100px]">
+          {user === null ? null : user.authenticated ? (
+            <div className="flex items-center gap-4">
+              <span className="text-black font-medium">
+                {user.username}
+              </span>
+              <SignOutButton />
+            </div>
+          ) : (
+            <Link
+              href="/auth/signin"
+              className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors"
+            >
+              Sign In
+            </Link>
+          )}
+        </div>
+        
+        <div style={{ width: '100px' }}></div>
       </div>
-    ) : (
-      <Link
-        href="/auth/signin"
-        className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors"
-      >
-        Sign In
-      </Link>
-    )}
-  </div>
-  
-  {/* Right spacer - 100px from right edge */}
-  <div style={{ width: '100px' }}></div>
-</div>
 
-      {/* Dropdown */}
       {isMenuOpen && (
         <div className="border-t border-gray-200 bg-[#f5f5dc]">
-          <div className="px-[100px] py-3">
-            <div className="text-gray-500 text-sm">
-              Menu is open
-            </div>
+          <div className="px-[100px] py-3 flex flex-col gap-2">
+            <Link
+              href="/quotes"
+              className="text-gray-700 hover:text-blue-600 transition-colors text-sm"
+              onClick={() => setIsMenuOpen(false)}
+            >
+              Classic malakia quotes
+            </Link>
           </div>
         </div>
       )}
