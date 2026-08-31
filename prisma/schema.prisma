@@ -23,10 +23,14 @@ model User {
   accounts      Account[]
   sessions      Session[]
 
-  posts             Post[]          @relation("PostAuthor")
-  contests           Contest[]      @relation("ContestAuthor")
-  moderatedPosts     Post[]         @relation("PostLanguageModerator")
-  auditLogEntries    AuditLogEntry[] @relation("AuditActor")
+  posts               Post[]            @relation("PostAuthor")
+  contests            Contest[]         @relation("ContestAuthor")
+  moderatedPosts      Post[]            @relation("PostLanguageModerator")
+  auditLogEntries     AuditLogEntry[]   @relation("AuditActor")
+  scaleSuggestions    ScaleSuggestion[] @relation("ScaleSuggestionAuthor")
+  reactions           Reaction[]        @relation("ReactionAuthor")
+  reports             Report[]          @relation("ReportAuthor")
+  reviewedReports     Report[]          @relation("ReportReviewer")
 }
 
 // Account, Session, VerificationToken models stay the same
@@ -127,6 +131,12 @@ enum DisputeType {
   PROVIDES_CONTEXT
 }
 
+enum ReportStatus {
+  PENDING
+  ACTIONED
+  DISMISSED
+}
+
 model Person {
   id                  String              @id @default(cuid())
   displayName         String
@@ -167,7 +177,10 @@ model Person {
   photoUrl            String?
   verificationStatus  VerificationStatus  @default(UNVERIFIED)
 
+  adminScaleValue     Int?                // -100 to +100, callous to civic-minded, set by the admin; null = not yet judged
+
   posts               Post[]
+  scaleSuggestions    ScaleSuggestion[]
   createdAt           DateTime            @default(now())
   updatedAt           DateTime            @updatedAt
 
@@ -215,6 +228,8 @@ model Post {
   rejectionReason               String?
 
   contests                      Contest[]
+  reactions                     Reaction[]
+  reports                       Report[]
   createdAt                     DateTime   @default(now())
 
   @@index([subjectPersonId, axis])
@@ -231,6 +246,9 @@ model Contest {
   disputeType         DisputeType
   justification       String
   createdAt           DateTime    @default(now())
+
+  reactions           Reaction[]
+  reports             Report[]
 }
 
 model AuditLogEntry {
@@ -243,4 +261,72 @@ model AuditLogEntry {
   targetId    String
   reason      String?
   createdAt   DateTime @default(now())
+}
+
+model ScaleSuggestion {
+  id          String   @id @default(cuid())
+
+  personId    String
+  person      Person   @relation(fields: [personId], references: [id])
+
+  userId      String
+  user        User     @relation("ScaleSuggestionAuthor", fields: [userId], references: [id])
+
+  value       Int      // -100 (callous) to +100 (civic-minded)
+  reasoning   String?  // optional justification, personal responsibility
+
+  createdAt   DateTime @default(now())
+
+  reactions   Reaction[]
+  reports     Report[]
+
+  @@index([personId])
+}
+
+model Reaction {
+  id                String            @id @default(cuid())
+  userId            String
+  user              User              @relation("ReactionAuthor", fields: [userId], references: [id])
+
+  postId            String            // always required — every reaction is anchored to a specific post
+  post              Post              @relation(fields: [postId], references: [id])
+
+  scaleSuggestionId String?           // optional: this reaction is specifically about a scale suggestion tied to this post's subject
+  scaleSuggestion   ScaleSuggestion?  @relation(fields: [scaleSuggestionId], references: [id])
+
+  contestId         String?           // optional: this reaction is specifically about a contest on this post
+  contest           Contest?          @relation(fields: [contestId], references: [id])
+
+  body              String            // free text — users write what they want
+
+  createdAt         DateTime          @default(now())
+
+  @@index([postId])
+}
+
+model Report {
+  id                String            @id @default(cuid())
+  reporterUserId    String
+  reporter          User              @relation("ReportAuthor", fields: [reporterUserId], references: [id])
+
+  postId            String            // always required — every report is anchored to a specific post
+  post              Post              @relation(fields: [postId], references: [id])
+
+  scaleSuggestionId String?
+  scaleSuggestion   ScaleSuggestion?  @relation(fields: [scaleSuggestionId], references: [id])
+
+  contestId         String?
+  contest           Contest?          @relation(fields: [contestId], references: [id])
+
+  reason            String
+  status            ReportStatus      @default(PENDING)
+
+  reviewedById      String?
+  reviewedBy        User?             @relation("ReportReviewer", fields: [reviewedById], references: [id])
+  reviewedAt        DateTime?
+  resolutionNote    String?
+
+  createdAt         DateTime          @default(now())
+
+  @@index([postId])
 }
