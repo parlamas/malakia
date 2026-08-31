@@ -183,6 +183,9 @@ export default function SubjectProfilePage() {
   const [savingAdminValue, setSavingAdminValue] = useState(false);
   const [adminValueError, setAdminValueError] = useState('');
 
+  const [verifyStatus, setVerifyStatus] = useState<'idle' | 'saving'>('idle');
+  const [verifyError, setVerifyError] = useState('');
+
   useEffect(() => {
     fetch('/api/auth/me', { credentials: 'include' })
       .then((r) => r.json())
@@ -271,6 +274,29 @@ export default function SubjectProfilePage() {
     setData((prev) => prev ? { ...prev, subject: { ...prev.subject, adminScaleValue: d.subject.adminScaleValue } } : prev);
   }
 
+  async function handleSetVerification(newStatus: 'ADMIN_CONFIRMED' | 'DISPUTED' | 'UNVERIFIED') {
+    setVerifyError('');
+    let reason: string | null = null;
+    if (newStatus === 'DISPUTED') {
+      reason = window.prompt('Reason for disputing this record\'s eligibility:');
+      if (!reason) return;
+    }
+    setVerifyStatus('saving');
+    const res = await fetch(`/api/subjects/${id}/verify`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ verificationStatus: newStatus, reason }),
+    });
+    setVerifyStatus('idle');
+    if (!res.ok) {
+      const d = await res.json();
+      setVerifyError(d.error ?? 'Something went wrong.');
+      return;
+    }
+    const d = await res.json();
+    setData((prev) => prev ? { ...prev, subject: { ...prev.subject, verificationStatus: d.subject.verificationStatus } } : prev);
+  }
+
   if (status === 'loading') {
     return (
       <main style={pageStyle}>
@@ -331,6 +357,36 @@ export default function SubjectProfilePage() {
         {subject.verificationStatus === 'ADMIN_CONFIRMED' && (
           <span style={badgeStyle('#2F5D50', '#E7EEEA')}>Confirmed</span>
         )}
+        {subject.verificationStatus === 'DISPUTED' && (
+          <span style={badgeStyle('#7A2E2E', '#F3E8E6')}>Disputed</span>
+        )}
+
+        {isAdmin && (
+          <div style={{ marginTop: 10, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+            <button
+              onClick={() => handleSetVerification('ADMIN_CONFIRMED')}
+              disabled={verifyStatus === 'saving'}
+              style={{ padding: '6px 14px', background: '#2F5D50', color: '#fff', border: 'none', fontSize: 12, cursor: 'pointer' }}
+            >
+              Confirm
+            </button>
+            <button
+              onClick={() => handleSetVerification('DISPUTED')}
+              disabled={verifyStatus === 'saving'}
+              style={{ padding: '6px 14px', background: '#7A2E2E', color: '#fff', border: 'none', fontSize: 12, cursor: 'pointer' }}
+            >
+              Dispute
+            </button>
+            <button
+              onClick={() => handleSetVerification('UNVERIFIED')}
+              disabled={verifyStatus === 'saving'}
+              style={{ padding: '6px 14px', background: 'transparent', color: '#5F5E5A', border: '1px solid #B4B2A9', fontSize: 12, cursor: 'pointer' }}
+            >
+              Reset to unverified
+            </button>
+            {verifyError && <span style={{ color: '#7A2E2E', fontSize: 12 }}>{verifyError}</span>}
+          </div>
+        )}
 
         {notice && (
           <div style={{ background: '#F3E8E6', border: '1px solid #7A2E2E', padding: '14px 16px', marginTop: 24 }}>
@@ -338,7 +394,6 @@ export default function SubjectProfilePage() {
           </div>
         )}
 
-        {/* Scale: admin value + user suggestions */}
         <div style={{ border: '1px solid #B4B2A9', background: '#fff', padding: '20px', marginTop: 28, marginBottom: 32 }}>
           <p style={monoLabel}>ETHICS SCALE (−1000 CALLOUS · +1000 CIVIC-MINDED)</p>
 
