@@ -66,7 +66,7 @@ style={{ marginLeft: '40px' }}
   ) : (
     <Link
       href="/auth/signin"
-      className="bg-[#8B4513] text-white px-4 py-2 rounded hover:bg-[#6f3610] transition-colors"
+      className="bg-[#8B4513] text-white px-6 py-2 rounded hover:bg-[#6f3610] transition-colors"
     >
       Sign In
     </Link>
