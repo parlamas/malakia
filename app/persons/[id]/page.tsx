@@ -227,7 +227,7 @@ export default function PersonProfilePage() {
 
     setSuggestionValue('');
     setSuggestionReasoning('');
-    setSuggestionSuccess((s) => !s); // toggles to re-trigger the suggestions fetch
+    setSuggestionSuccess((s) => !s);
   }
 
   async function handleSaveAdminValue() {
@@ -312,20 +312,7 @@ export default function PersonProfilePage() {
         )}
 
         {record && (
-          <div style={{ display: 'flex', gap: 16, marginTop: 28, marginBottom: 12 }}>
-            <div style={{ ...tallyCard, borderColor: '#7A2E2E' }}>
-              <p style={{ ...monoLabel, marginTop: 0 }}>CALLOUS</p>
-              <p style={{ fontFamily: 'Georgia, serif', fontSize: 28, color: '#7A2E2E', margin: 0 }}>{record.callousCount}</p>
-            </div>
-            <div style={{ ...tallyCard, borderColor: '#2F5D50' }}>
-              <p style={{ ...monoLabel, marginTop: 0 }}>CIVIC</p>
-              <p style={{ fontFamily: 'Georgia, serif', fontSize: 28, color: '#2F5D50', margin: 0 }}>{record.civicCount}</p>
-            </div>
-          </div>
-        )}
-
-        {record && (
-          <p style={{ fontSize: 13, color: '#5F5E5A', marginBottom: 24 }}>
+          <p style={{ fontSize: 13, color: '#5F5E5A', marginTop: 28, marginBottom: 24 }}>
             Record for {person.roleTitle}, {tenure}.
           </p>
         )}
@@ -491,13 +478,6 @@ const monoLabel: React.CSSProperties = {
   letterSpacing: '0.05em',
   color: '#5F5E5A',
   margin: '4px 0',
-};
-
-const tallyCard: React.CSSProperties = {
-  flex: 1,
-  border: '1px solid',
-  background: '#fff',
-  padding: '14px 18px',
 };
 
 const inputStyle: React.CSSProperties = {
