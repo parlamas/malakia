@@ -89,8 +89,6 @@ const MONTH_NAMES = [
   'July', 'August', 'September', 'October', 'November', 'December',
 ];
 
-// Renders a flexible year/month/day/circa/unknown quartet as text.
-// year === null means "no date at all"; unknown means "year known, month/day not."
 function formatFlexible(
   year: number | null,
   month: number | null,
@@ -219,23 +217,52 @@ export default function PersonProfilePage() {
         )}
 
         {record && (
-          <div style={{ display: 'flex', gap: 16, marginTop: 28, marginBottom: 12 }}>
-            <div style={{ ...tallyCard, borderColor: '#7A2E2E' }}>
-              <p style={{ ...monoLabel, marginTop: 0 }}>CALLOUS</p>
-              <p style={{ fontFamily: 'Georgia, serif', fontSize: 28, color: '#7A2E2E', margin: 0 }}>{record.callousCount}</p>
+          <>
+            <div style={{ display: 'flex', gap: 16, marginTop: 28, marginBottom: 12 }}>
+              <div style={{ ...tallyCard, borderColor: '#7A2E2E' }}>
+                <p style={{ ...monoLabel, marginTop: 0 }}>CALLOUS</p>
+                <p style={{ fontFamily: 'Georgia, serif', fontSize: 28, color: '#7A2E2E', margin: 0 }}>{record.callousCount}</p>
+              </div>
+              <div style={{ ...tallyCard, borderColor: '#2F5D50' }}>
+                <p style={{ ...monoLabel, marginTop: 0 }}>CIVIC</p>
+                <p style={{ fontFamily: 'Georgia, serif', fontSize: 28, color: '#2F5D50', margin: 0 }}>{record.civicCount}</p>
+              </div>
             </div>
-            <div style={{ ...tallyCard, borderColor: '#2F5D50' }}>
-              <p style={{ ...monoLabel, marginTop: 0 }}>CIVIC</p>
-              <p style={{ fontFamily: 'Georgia, serif', fontSize: 28, color: '#2F5D50', margin: 0 }}>{record.civicCount}</p>
-            </div>
-          </div>
+
+            {record.netScore !== 0 && (
+              <div style={{
+                display: 'inline-block',
+                padding: '6px 14px',
+                marginBottom: 20,
+                fontFamily: 'Georgia, serif',
+                fontSize: 14,
+                color: '#fff',
+                background: record.netScore > 0 ? '#2F5D50' : '#7A2E2E',
+              }}>
+                {record.netScore > 0
+                  ? `Record leans civic-minded (+${record.netScore})`
+                  : `Record leans callous (${record.netScore})`}
+              </div>
+            )}
+            {record.netScore === 0 && record.callousCount + record.civicCount > 0 && (
+              <div style={{
+                display: 'inline-block',
+                padding: '6px 14px',
+                marginBottom: 20,
+                fontFamily: 'Georgia, serif',
+                fontSize: 14,
+                color: '#5F5E5A',
+                background: '#E8E4DA',
+              }}>
+                Record is evenly balanced
+              </div>
+            )}
+          </>
         )}
 
         {record && (
           <p style={{ fontSize: 13, color: '#5F5E5A', marginBottom: 32 }}>
-            {person.personaCategory === 'HISTORICAL_FIGURE'
-              ? `Record for ${person.roleTitle}, ${tenure}.`
-              : `Record for ${person.roleTitle}, ${tenure}.`}
+            Record for {person.roleTitle}, {tenure}.
           </p>
         )}
 
