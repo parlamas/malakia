@@ -125,19 +125,29 @@ export default function SubmitPage() {
   }, [subjectQuery]);
 
   async function handlePhotoUpload(file: File) {
-    setUploadingPhoto(true);
-    setErrorMessage('');
+  setUploadingPhoto(true);
+  setErrorMessage('');
+  try {
     const formData = new FormData();
     formData.append('file', file);
     const res = await fetch('/api/upload/person-photo', { method: 'POST', body: formData });
-    const data = await res.json();
-    setUploadingPhoto(false);
+    let data: any = {};
+    try {
+      data = await res.json();
+    } catch {
+      // response had no JSON body (e.g. a raw 500) — fall through with empty data
+    }
     if (res.ok) {
       setPhotoUrl(data.url);
     } else {
-      setErrorMessage(data.error ?? 'Photo upload failed.');
+      setErrorMessage(data.error ?? `Photo upload failed (status ${res.status}).`);
     }
+  } catch (err) {
+    setErrorMessage('Photo upload failed — network or server error.');
+  } finally {
+    setUploadingPhoto(false);
   }
+}
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
