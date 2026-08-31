@@ -352,14 +352,20 @@ export default function SubjectProfilePage() {
         </div>
 
         {subject.verificationStatus === 'UNVERIFIED' && (
-          <span style={badgeStyle('#B8860B', '#FBF1DC')}>Status not yet confirmed</span>
-        )}
-        {subject.verificationStatus === 'ADMIN_CONFIRMED' && (
-          <span style={badgeStyle('#2F5D50', '#E7EEEA')}>Confirmed</span>
-        )}
-        {subject.verificationStatus === 'DISPUTED' && (
-          <span style={badgeStyle('#7A2E2E', '#F3E8E6')}>Disputed</span>
-        )}
+  <span style={badgeStyle('#B8860B', '#FBF1DC')}>Status not yet confirmed</span>
+)}
+{subject.verificationStatus === 'ADMIN_CONFIRMED' && (
+  <span style={confirmedBadgeStyle(subject.adminScaleValue)}>
+    {subject.adminScaleValue === null
+      ? 'CONFIRMED'
+      : subject.adminScaleValue >= 0
+        ? 'CONFIRMED — CIVIC-MINDED'
+        : 'CONFIRMED — CALLOUS'}
+  </span>
+)}
+{subject.verificationStatus === 'DISPUTED' && (
+  <span style={badgeStyle('#7A2E2E', '#F3E8E6')}>Disputed</span>
+)}
 
         {isAdmin && (
           <div style={{ marginTop: 10, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -573,5 +579,20 @@ function badgeStyle(color: string, bg: string): React.CSSProperties {
     padding: '3px 10px',
     marginTop: 6,
     fontFamily: 'Inter, system-ui, sans-serif',
+  };
+}
+
+  function confirmedBadgeStyle(adminScaleValue: number | null): React.CSSProperties {
+  const isCivic = adminScaleValue !== null && adminScaleValue >= 0;
+  return {
+    display: 'inline-block',
+    fontSize: 15,
+    fontWeight: 'bold',
+    fontFamily: 'Georgia, serif',
+    letterSpacing: '0.03em',
+    color: '#fff',
+    background: isCivic ? '#2F5D50' : '#7A2E2E',
+    padding: '6px 16px',
+    marginTop: 8,
   };
 }
