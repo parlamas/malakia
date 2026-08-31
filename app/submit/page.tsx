@@ -7,6 +7,7 @@ import Link from 'next/link';
 import FlexibleDateSelect, { FlexibleDate } from '@/components/FlexibleDateSelect';
 
 type Axis = 'CALLOUS' | 'CIVIC';
+type SubjectType = 'PERSON' | 'INSTITUTION' | 'ORGANIZATION' | 'BUSINESS' | 'NATION' | 'PRACTICE' | 'TRADITION' | 'IDEOLOGY';
 
 interface Behavior {
   id: string;
@@ -14,14 +15,25 @@ interface Behavior {
   description: string;
 }
 
-interface PersonMatch {
+interface SubjectMatch {
   id: string;
+  subjectType: SubjectType;
   displayName: string;
   disambiguators: string | null;
-  country: string;
-  roleTitle: string;
-  personaCategory: string;
+  description: string | null;
+  roleTitle: string | null;
 }
+
+const SUBJECT_TYPES: { value: SubjectType; label: string }[] = [
+  { value: 'PERSON', label: 'Person' },
+  { value: 'INSTITUTION', label: 'Institution' },
+  { value: 'ORGANIZATION', label: 'Organization' },
+  { value: 'BUSINESS', label: 'Business' },
+  { value: 'NATION', label: 'Nation' },
+  { value: 'PRACTICE', label: 'Practice' },
+  { value: 'TRADITION', label: 'Tradition' },
+  { value: 'IDEOLOGY', label: 'Ideology' },
+];
 
 const PERSONA_CATEGORIES = [
   { value: 'ELECTED_OFFICIAL', label: 'Elected official' },
@@ -30,6 +42,9 @@ const PERSONA_CATEGORIES = [
   { value: 'GOVERNMENT_MEMBER', label: 'Government member (judiciary, legislature, law enforcement)' },
   { value: 'HISTORICAL_FIGURE', label: 'Historical or classical figure (any era)' },
 ];
+
+const HAS_TENURE_FIELDS: SubjectType[] = ['PERSON', 'INSTITUTION', 'ORGANIZATION', 'BUSINESS', 'NATION'];
+const HAS_BIRTH_DEATH: SubjectType[] = ['PERSON'];
 
 const emptyFlexDate: FlexibleDate = { year: null, month: null, day: null, circa: false, unknown: false };
 
@@ -45,17 +60,20 @@ export default function SubmitPage() {
   const [conductEraNote, setConductEraNote] = useState('');
   const [justification, setJustification] = useState('');
 
-  const [personQuery, setPersonQuery] = useState('');
-  const [matches, setMatches] = useState<PersonMatch[]>([]);
-  const [selectedPersonId, setSelectedPersonId] = useState<string | null>(null);
+  const [subjectQuery, setSubjectQuery] = useState('');
+  const [matches, setMatches] = useState<SubjectMatch[]>([]);
+  const [selectedSubjectId, setSelectedSubjectId] = useState<string | null>(null);
 
-  const [newPerson, setNewPerson] = useState({
+  const [subjectType, setSubjectType] = useState<SubjectType | ''>('');
+
+  const [newSubject, setNewSubject] = useState({
     displayName: '',
-    country: '',
+    description: '',
+    disambiguators: '',
+    associatedContext: '',
     personaCategory: 'ELECTED_OFFICIAL',
     roleTitle: '',
     roleEvidenceUrl: '',
-    disambiguators: '',
   });
   const [roleStart, setRoleStart] = useState<FlexibleDate>(emptyFlexDate);
   const [roleEnd, setRoleEnd] = useState<FlexibleDate>(emptyFlexDate);
@@ -72,7 +90,10 @@ export default function SubmitPage() {
   const [status, setStatus] = useState<'idle' | 'submitting' | 'error' | 'success'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
 
-  const isHistorical = !selectedPersonId && newPerson.personaCategory === 'HISTORICAL_FIGURE';
+  const isCreatingNew = !selectedSubjectId;
+  const showTenureFields = isCreatingNew && subjectType && HAS_TENURE_FIELDS.includes(subjectType);
+  const showBirthDeath = isCreatingNew && subjectType && HAS_BIRTH_DEATH.includes(subjectType);
+  const isHistoricalPerson = isCreatingNew && subjectType === 'PERSON' && newSubject.personaCategory === 'HISTORICAL_FIGURE';
 
   useEffect(() => {
     fetch('/api/auth/me', { credentials: 'include' })
@@ -91,17 +112,17 @@ export default function SubmitPage() {
   }, [axis]);
 
   useEffect(() => {
-    if (personQuery.length < 2) {
+    if (subjectQuery.length < 2) {
       setMatches([]);
       return;
     }
     const t = setTimeout(() => {
-      fetch(`/api/persons?q=${encodeURIComponent(personQuery)}`)
+      fetch(`/api/subjects?q=${encodeURIComponent(subjectQuery)}`)
         .then((r) => r.json())
-        .then((data) => setMatches(data.persons ?? []));
+        .then((data) => setMatches(data.subjects ?? []));
     }, 300);
     return () => clearTimeout(t);
-  }, [personQuery]);
+  }, [subjectQuery]);
 
   async function handlePhotoUpload(file: File) {
     setUploadingPhoto(true);
@@ -123,38 +144,40 @@ export default function SubmitPage() {
     setStatus('submitting');
     setErrorMessage('');
 
-    const subject = selectedPersonId
-      ? { existingPersonId: selectedPersonId }
+    const subject = selectedSubjectId
+      ? { existingSubjectId: selectedSubjectId }
       : {
-          displayName: newPerson.displayName,
-          country: newPerson.country,
-          personaCategory: newPerson.personaCategory,
-          roleTitle: newPerson.roleTitle,
-          roleStartYear: roleStart.year,
-          roleStartMonth: roleStart.month,
-          roleStartDay: roleStart.day,
-          roleStartCirca: roleStart.circa,
-          roleStartUnknown: roleStart.unknown,
-          roleEndYear: stillServing ? null : roleEnd.year,
-          roleEndMonth: stillServing ? null : roleEnd.month,
-          roleEndDay: stillServing ? null : roleEnd.day,
-          roleEndCirca: stillServing ? false : roleEnd.circa,
-          roleEndUnknown: stillServing ? false : roleEnd.unknown,
-          stillServing,
-          approximatePeriod: isHistorical ? (approximatePeriod || null) : null,
-          birthYear: birthDate.year,
-          birthMonth: birthDate.month,
-          birthDay: birthDate.day,
-          birthCirca: birthDate.circa,
-          birthUnknown: birthDate.unknown,
-          isDeceased,
-          deathYear: isDeceased ? deathDate.year : null,
-          deathMonth: isDeceased ? deathDate.month : null,
-          deathDay: isDeceased ? deathDate.day : null,
-          deathCirca: isDeceased ? deathDate.circa : false,
-          deathUnknown: isDeceased ? deathDate.unknown : false,
-          roleEvidenceUrl: newPerson.roleEvidenceUrl || null,
-          disambiguators: newPerson.disambiguators || null,
+          subjectType,
+          displayName: newSubject.displayName,
+          description: newSubject.description || null,
+          disambiguators: newSubject.disambiguators || null,
+          associatedContext: newSubject.associatedContext || null,
+          personaCategory: subjectType === 'PERSON' ? newSubject.personaCategory : null,
+          roleTitle: newSubject.roleTitle || null,
+          roleStartYear: showTenureFields ? roleStart.year : null,
+          roleStartMonth: showTenureFields ? roleStart.month : null,
+          roleStartDay: showTenureFields ? roleStart.day : null,
+          roleStartCirca: showTenureFields ? roleStart.circa : false,
+          roleStartUnknown: showTenureFields ? roleStart.unknown : false,
+          roleEndYear: showTenureFields && !stillServing ? roleEnd.year : null,
+          roleEndMonth: showTenureFields && !stillServing ? roleEnd.month : null,
+          roleEndDay: showTenureFields && !stillServing ? roleEnd.day : null,
+          roleEndCirca: showTenureFields && !stillServing ? roleEnd.circa : false,
+          roleEndUnknown: showTenureFields && !stillServing ? roleEnd.unknown : false,
+          stillServing: showTenureFields ? stillServing : false,
+          approximatePeriod: isHistoricalPerson ? (approximatePeriod || null) : null,
+          birthYear: showBirthDeath ? birthDate.year : null,
+          birthMonth: showBirthDeath ? birthDate.month : null,
+          birthDay: showBirthDeath ? birthDate.day : null,
+          birthCirca: showBirthDeath ? birthDate.circa : false,
+          birthUnknown: showBirthDeath ? birthDate.unknown : false,
+          isDeceased: showBirthDeath ? isDeceased : false,
+          deathYear: showBirthDeath && isDeceased ? deathDate.year : null,
+          deathMonth: showBirthDeath && isDeceased ? deathDate.month : null,
+          deathDay: showBirthDeath && isDeceased ? deathDate.day : null,
+          deathCirca: showBirthDeath && isDeceased ? deathDate.circa : false,
+          deathUnknown: showBirthDeath && isDeceased ? deathDate.unknown : false,
+          roleEvidenceUrl: newSubject.roleEvidenceUrl || null,
           photoUrl: photoUrl || null,
         };
 
@@ -181,7 +204,7 @@ export default function SubmitPage() {
 
     if (res.status === 409 && data.needsDisambiguation) {
       setMatches(data.possibleMatches);
-      setErrorMessage('A similar record already exists — select it above, or confirm this is a different person.');
+      setErrorMessage('A similar record already exists — select it above, or confirm this is a different subject.');
       setStatus('error');
       return;
     }
@@ -259,13 +282,13 @@ export default function SubmitPage() {
     <main style={{ background: '#EDEAE2', minHeight: '100vh', padding: '3rem 1.5rem' }}>
       <div style={{ maxWidth: 640, margin: '0 auto', fontFamily: 'Inter, system-ui, sans-serif' }}>
         <p style={{ fontFamily: 'ui-monospace, "IBM Plex Mono", monospace', fontSize: 13, color: '#5F5E5A', letterSpacing: '0.03em' }}>
-          MALAKIA — PUBLIC RECORD
+          MALAKIA — POLITICAL ETHICS BAROMETER
         </p>
         <h1 style={{ fontFamily: 'Georgia, "Iowan Old Style", serif', fontSize: 30, color: '#1C2024', marginTop: 8, marginBottom: 4 }}>
           File a record
         </h1>
         <p style={{ color: '#5F5E5A', marginBottom: 32, lineHeight: 1.6 }}>
-          Records apply to public officials, journalists, government members, and documented historical or classical figures.
+          Records may concern persons, institutions, organizations, businesses, nations, practices, traditions, or ideologies.
         </p>
 
         <div style={{ display: 'flex', marginBottom: 32 }}>
@@ -301,137 +324,175 @@ export default function SubmitPage() {
           <fieldset style={{ border: 'none', padding: 0, marginBottom: 28 }}>
             <legend style={sectionLabel}>Subject</legend>
 
-            {!selectedPersonId && (
+            {!selectedSubjectId && (
               <>
-                <input
-                  type="text"
-                  placeholder="Search for the person by name"
-                  value={personQuery}
-                  onChange={(e) => setPersonQuery(e.target.value)}
-                  style={inputStyle}
-                />
-                {matches.length > 0 && (
-                  <div style={{ border: '1px solid #B4B2A9', marginTop: 6 }}>
-                    {matches.map((m) => (
-                      <button
-                        type="button"
-                        key={m.id}
-                        onClick={() => {
-                          setSelectedPersonId(m.id);
-                          setMatches([]);
-                        }}
-                        style={{
-                          display: 'block',
-                          width: '100%',
-                          textAlign: 'left',
-                          padding: '10px 12px',
-                          background: '#fff',
-                          border: 'none',
-                          borderBottom: '1px solid #E8E4DA',
-                          cursor: 'pointer',
-                          fontSize: 14,
-                        }}
-                      >
-                        {m.displayName} — {m.roleTitle}, {m.country}
-                        {m.disambiguators ? ` (${m.disambiguators})` : ''}
-                      </button>
+                <label style={dateLabel}>
+                  Category
+                  <select
+                    value={subjectType}
+                    onChange={(e) => setSubjectType(e.target.value as SubjectType)}
+                    style={{ ...inputStyle, marginTop: 4 }}
+                    required
+                  >
+                    <option value="">Select a category</option>
+                    {SUBJECT_TYPES.map((t) => (
+                      <option key={t.value} value={t.value}>{t.label}</option>
                     ))}
-                  </div>
-                )}
+                  </select>
+                </label>
 
-                <p style={{ fontSize: 13, color: '#5F5E5A', margin: '10px 0' }}>
-                  Not listed? Enter their details below to create a new record.
-                </p>
-
-                <div style={grid2}>
-                  <input placeholder="Full name" value={newPerson.displayName}
-                    onChange={(e) => setNewPerson({ ...newPerson, displayName: e.target.value })} style={inputStyle} />
-                  <input placeholder="Country (or region of antiquity)" value={newPerson.country}
-                    onChange={(e) => setNewPerson({ ...newPerson, country: e.target.value })} style={inputStyle} />
-                </div>
-
-                <select value={newPerson.personaCategory}
-                  onChange={(e) => setNewPerson({ ...newPerson, personaCategory: e.target.value })}
-                  style={{ ...inputStyle, marginTop: 10 }}>
-                  {PERSONA_CATEGORIES.map((c) => (
-                    <option key={c.value} value={c.value}>{c.label}</option>
-                  ))}
-                </select>
-
-                <input placeholder="Role or title (e.g. Mayor of Aarhus, or Philosopher)" value={newPerson.roleTitle}
-                  onChange={(e) => setNewPerson({ ...newPerson, roleTitle: e.target.value })}
-                  style={{ ...inputStyle, marginTop: 10 }} />
-
-                {isHistorical && (
-                  <label style={dateLabel}>
-                    Approximate period (optional, e.g. "5th century BCE Athens")
+                {subjectType && (
+                  <>
                     <input
-                      value={approximatePeriod}
-                      onChange={(e) => setApproximatePeriod(e.target.value)}
-                      style={{ ...inputStyle, marginTop: 4 }}
+                      type="text"
+                      placeholder="Search for an existing record by name"
+                      value={subjectQuery}
+                      onChange={(e) => setSubjectQuery(e.target.value)}
+                      style={{ ...inputStyle, marginTop: 14 }}
                     />
-                  </label>
+                    {matches.length > 0 && (
+                      <div style={{ border: '1px solid #B4B2A9', marginTop: 6 }}>
+                        {matches.map((m) => (
+                          <button
+                            type="button"
+                            key={m.id}
+                            onClick={() => {
+                              setSelectedSubjectId(m.id);
+                              setMatches([]);
+                            }}
+                            style={{
+                              display: 'block',
+                              width: '100%',
+                              textAlign: 'left',
+                              padding: '10px 12px',
+                              background: '#fff',
+                              border: 'none',
+                              borderBottom: '1px solid #E8E4DA',
+                              cursor: 'pointer',
+                              fontSize: 14,
+                            }}
+                          >
+                            {m.displayName}{m.roleTitle ? ` — ${m.roleTitle}` : ''}
+                            {m.disambiguators ? ` (${m.disambiguators})` : ''}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
+                    <p style={{ fontSize: 13, color: '#5F5E5A', margin: '10px 0' }}>
+                      Not listed? Enter details below to create a new record.
+                    </p>
+
+                    <input placeholder="Name" value={newSubject.displayName}
+                      onChange={(e) => setNewSubject({ ...newSubject, displayName: e.target.value })} style={inputStyle} />
+
+                    <textarea
+                      placeholder="Description (what this is)"
+                      value={newSubject.description}
+                      onChange={(e) => setNewSubject({ ...newSubject, description: e.target.value })}
+                      style={{ ...inputStyle, height: 70, marginTop: 10, resize: 'vertical' }}
+                    />
+
+                    {subjectType === 'PERSON' && (
+                      <>
+                        <select value={newSubject.personaCategory}
+                          onChange={(e) => setNewSubject({ ...newSubject, personaCategory: e.target.value })}
+                          style={{ ...inputStyle, marginTop: 10 }}>
+                          {PERSONA_CATEGORIES.map((c) => (
+                            <option key={c.value} value={c.value}>{c.label}</option>
+                          ))}
+                        </select>
+
+                        <input placeholder="Role or title (e.g. Mayor of Aarhus, or Philosopher)" value={newSubject.roleTitle}
+                          onChange={(e) => setNewSubject({ ...newSubject, roleTitle: e.target.value })}
+                          style={{ ...inputStyle, marginTop: 10 }} />
+                      </>
+                    )}
+
+                    {isHistoricalPerson && (
+                      <label style={dateLabel}>
+                        Approximate period (optional, e.g. "5th century BCE Athens")
+                        <input
+                          value={approximatePeriod}
+                          onChange={(e) => setApproximatePeriod(e.target.value)}
+                          style={{ ...inputStyle, marginTop: 4 }}
+                        />
+                      </label>
+                    )}
+
+                    <input placeholder="Associated context (optional — e.g. jurisdiction, origin, region)" value={newSubject.associatedContext}
+                      onChange={(e) => setNewSubject({ ...newSubject, associatedContext: e.target.value })}
+                      style={{ ...inputStyle, marginTop: 10 }} />
+
+                    {showTenureFields && (
+                      <>
+                        <label style={dateLabel}>
+                          {subjectType === 'PERSON' ? 'Role start date' : 'Founding / formation date'}
+                          <FlexibleDateSelect value={roleStart} onChange={setRoleStart} yearRequired />
+                        </label>
+
+                        <label style={{ ...dateLabel, display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <input type="checkbox" checked={stillServing} onChange={(e) => setStillServing(e.target.checked)} />
+                          {subjectType === 'PERSON' ? 'Still serving in this role' : 'Still exists / active'}
+                        </label>
+
+                        {!stillServing && (
+                          <label style={dateLabel}>
+                            {subjectType === 'PERSON' ? 'Role end date' : 'Dissolution / end date'}
+                            <FlexibleDateSelect value={roleEnd} onChange={setRoleEnd} />
+                          </label>
+                        )}
+                      </>
+                    )}
+
+                    {showBirthDeath && (
+                      <>
+                        <label style={dateLabel}>
+                          Date of birth
+                          <FlexibleDateSelect value={birthDate} onChange={setBirthDate} />
+                        </label>
+
+                        <label style={{ ...dateLabel, display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <input type="checkbox" checked={isDeceased} onChange={(e) => setIsDeceased(e.target.checked)} />
+                          Deceased
+                        </label>
+
+                        {isDeceased && (
+                          <label style={dateLabel}>
+                            Date of death
+                            <FlexibleDateSelect value={deathDate} onChange={setDeathDate} />
+                          </label>
+                        )}
+                      </>
+                    )}
+
+                    <input placeholder="Link supporting documentation (optional)" value={newSubject.roleEvidenceUrl}
+                      onChange={(e) => setNewSubject({ ...newSubject, roleEvidenceUrl: e.target.value })}
+                      style={{ ...inputStyle, marginTop: 10 }} />
+
+                    <label style={dateLabel}>
+                      Photo or image (optional)
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) handlePhotoUpload(file);
+                        }}
+                        style={{ ...inputStyle, padding: '8px', marginTop: 4 }}
+                      />
+                      {uploadingPhoto && <span style={{ fontSize: 12, color: '#5F5E5A' }}>Uploading…</span>}
+                      {photoUrl && !uploadingPhoto && <span style={{ fontSize: 12, color: '#2F5D50' }}>Photo attached</span>}
+                    </label>
+                  </>
                 )}
-
-                <label style={dateLabel}>
-                  Role start date
-                  <FlexibleDateSelect value={roleStart} onChange={setRoleStart} yearRequired />
-                </label>
-
-                <label style={{ ...dateLabel, display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <input type="checkbox" checked={stillServing} onChange={(e) => setStillServing(e.target.checked)} />
-                  Still serving in this role
-                </label>
-
-                {!stillServing && (
-                  <label style={dateLabel}>
-                    Role end date
-                    <FlexibleDateSelect value={roleEnd} onChange={setRoleEnd} />
-                  </label>
-                )}
-
-                <label style={dateLabel}>
-                  Date of birth
-                  <FlexibleDateSelect value={birthDate} onChange={setBirthDate} />
-                </label>
-
-                <label style={{ ...dateLabel, display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <input type="checkbox" checked={isDeceased} onChange={(e) => setIsDeceased(e.target.checked)} />
-                  Deceased
-                </label>
-
-                {isDeceased && (
-                  <label style={dateLabel}>
-                    Date of death
-                    <FlexibleDateSelect value={deathDate} onChange={setDeathDate} />
-                  </label>
-                )}
-
-                <input placeholder="Link supporting their role or historical documentation (optional)" value={newPerson.roleEvidenceUrl}
-                  onChange={(e) => setNewPerson({ ...newPerson, roleEvidenceUrl: e.target.value })}
-                  style={{ ...inputStyle, marginTop: 10 }} />
-
-                <label style={dateLabel}>
-                  Photo or depiction of this person (optional)
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) handlePhotoUpload(file);
-                    }}
-                    style={{ ...inputStyle, padding: '8px', marginTop: 4 }}
-                  />
-                  {uploadingPhoto && <span style={{ fontSize: 12, color: '#5F5E5A' }}>Uploading…</span>}
-                  {photoUrl && !uploadingPhoto && <span style={{ fontSize: 12, color: '#2F5D50' }}>Photo attached</span>}
-                </label>
               </>
             )}
 
-            {selectedPersonId && (
+            {selectedSubjectId && (
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', background: '#fff', border: '1px solid #B4B2A9' }}>
                 <span style={{ fontSize: 14 }}>Filing against selected record</span>
-                <button type="button" onClick={() => setSelectedPersonId(null)} style={{ background: 'none', border: 'none', color: '#7A2E2E', cursor: 'pointer', fontSize: 13 }}>
+                <button type="button" onClick={() => setSelectedSubjectId(null)} style={{ background: 'none', border: 'none', color: '#7A2E2E', cursor: 'pointer', fontSize: 13 }}>
                   Change
                 </button>
               </div>
@@ -454,7 +515,7 @@ export default function SubmitPage() {
             </label>
 
             <label style={dateLabel}>
-              Note on dating (optional, e.g. "shortly before his trial")
+              Note on dating (optional)
               <input
                 value={conductEraNote}
                 onChange={(e) => setConductEraNote(e.target.value)}
@@ -479,13 +540,9 @@ export default function SubmitPage() {
           </fieldset>
 
           <fieldset style={{ border: 'none', padding: 0, marginBottom: 28 }}>
-            <legend style={sectionLabel}>
-              {isHistorical ? 'Documentation basis' : 'Public-capacity justification'}
-            </legend>
+            <legend style={sectionLabel}>Justification</legend>
             <p style={{ fontSize: 13, color: '#5F5E5A', marginBottom: 8 }}>
-              {isHistorical
-                ? 'Explain the historical basis for this — a source, text, or well-documented account.'
-                : "Explain why this falls within the subject's public role — not their private life."}
+              Explain the basis for this claim — evidence, source, or reasoning.
             </p>
             <textarea
               value={justification}
@@ -539,12 +596,6 @@ const inputStyle: React.CSSProperties = {
   fontFamily: 'Inter, system-ui, sans-serif',
   fontSize: 14,
   boxSizing: 'border-box',
-};
-
-const grid2: React.CSSProperties = {
-  display: 'grid',
-  gridTemplateColumns: '1fr 1fr',
-  gap: 10,
 };
 
 const dateLabel: React.CSSProperties = {
