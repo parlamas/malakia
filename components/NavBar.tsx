@@ -108,7 +108,7 @@ style={{ marginLeft: '40px' }}
             </Link>
 
             <Link
-  href="/persons"
+  href="/subjects"
   className="text-gray-700 hover:text-blue-600 transition-colors text-sm"
   onClick={() => setIsMenuOpen(false)}
 >
