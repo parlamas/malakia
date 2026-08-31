@@ -23,10 +23,11 @@ interface Post {
   axis: 'CALLOUS' | 'CIVIC';
   narrative: string;
   evidenceUrl: string | null;
-  conductDate: string | null;
-  conductYear: number | null;
+  conductYear: number;
   conductMonth: number | null;
   conductDay: number | null;
+  conductCirca: boolean;
+  conductUnknown: boolean;
   conductEraNote: string | null;
   publicCapacityJustification: string;
   behavior: Behavior;
@@ -41,20 +42,29 @@ interface PersonData {
   country: string;
   personaCategory: string;
   roleTitle: string;
-  roleStartDate: string | null;
-  roleEndDate: string | null;
   roleStartYear: number | null;
+  roleStartMonth: number | null;
+  roleStartDay: number | null;
+  roleStartCirca: boolean;
+  roleStartUnknown: boolean;
   roleEndYear: number | null;
+  roleEndMonth: number | null;
+  roleEndDay: number | null;
+  roleEndCirca: boolean;
+  roleEndUnknown: boolean;
+  stillServing: boolean;
   approximatePeriod: string | null;
   birthYear: number | null;
   birthMonth: number | null;
   birthDay: number | null;
-  birthDateUnknown: boolean;
+  birthCirca: boolean;
+  birthUnknown: boolean;
   isDeceased: boolean;
   deathYear: number | null;
   deathMonth: number | null;
   deathDay: number | null;
-  deathDateUnknown: boolean;
+  deathCirca: boolean;
+  deathUnknown: boolean;
   photoUrl: string | null;
   verificationStatus: 'UNVERIFIED' | 'ADMIN_CONFIRMED' | 'DISPUTED';
 }
@@ -79,72 +89,53 @@ const MONTH_NAMES = [
   'July', 'August', 'September', 'October', 'November', 'December',
 ];
 
-function formatDateTime(d: string) {
-  return new Date(d).toLocaleDateString('en-GB', { year: 'numeric', month: 'short', day: 'numeric' });
-}
-
-// Formats a year/month/day trio where year may be signed (BCE), and
-// month/day may be absent — never falls back to a full Date() parse,
-// which is what produced the "1 Jan 1970" epoch bug for null dates.
-function formatFlexible(year: number | null, month?: number | null, day?: number | null): string | null {
+// Renders a flexible year/month/day/circa/unknown quartet as text.
+// year === null means "no date at all"; unknown means "year known, month/day not."
+function formatFlexible(
+  year: number | null,
+  month: number | null,
+  day: number | null,
+  circa: boolean,
+  unknown: boolean,
+): string | null {
   if (year === null) return null;
   const era = year < 0 ? 'BCE' : 'CE';
   const absYear = Math.abs(year);
-  if (month) {
-    const monthName = MONTH_NAMES[month - 1] ?? '';
-    if (day) {
-      return `${day} ${monthName} ${absYear} ${era}`;
-    }
-    return `${monthName} ${absYear} ${era}`;
+  const prefix = circa ? 'circa ' : '';
+
+  if (unknown || !month) {
+    return `${prefix}${absYear} ${era}`;
   }
-  return `${absYear} ${era}`;
+  const monthName = MONTH_NAMES[month - 1] ?? '';
+  if (day) {
+    return `${prefix}${day} ${monthName} ${absYear} ${era}`;
+  }
+  return `${prefix}${monthName} ${absYear} ${era}`;
 }
 
-function formatTenure(person: PersonData): string {
-  if (person.personaCategory === 'HISTORICAL_FIGURE') {
-    if (person.approximatePeriod) return person.approximatePeriod;
-    const start = formatFlexible(person.roleStartYear);
-    const end = formatFlexible(person.roleEndYear);
-    if (start && end) return `${start} – ${end}`;
-    if (start) return `From ${start}`;
-    return 'Period not specified';
-  }
-  if (!person.roleStartDate) return 'Tenure not specified';
-  const start = formatDateTime(person.roleStartDate);
-  const end = person.roleEndDate ? formatDateTime(person.roleEndDate) : 'present';
-  return `${start} – ${end}`;
+function formatTenure(p: PersonData): string {
+  if (p.approximatePeriod) return p.approximatePeriod;
+  const start = formatFlexible(p.roleStartYear, p.roleStartMonth, p.roleStartDay, p.roleStartCirca, p.roleStartUnknown);
+  if (!start) return 'Period not specified';
+  if (p.stillServing) return `${start} – present`;
+  const end = formatFlexible(p.roleEndYear, p.roleEndMonth, p.roleEndDay, p.roleEndCirca, p.roleEndUnknown);
+  return end ? `${start} – ${end}` : start;
 }
 
-function formatBirthDeath(person: PersonData): string | null {
+function formatBirthDeath(p: PersonData): string | null {
   const parts: string[] = [];
-
-  if (person.birthDateUnknown) {
-    parts.push('Born: date unknown');
-  } else {
-    const birth = formatFlexible(person.birthYear, person.birthMonth, person.birthDay);
-    if (birth) parts.push(`Born: ${birth}`);
+  const birth = formatFlexible(p.birthYear, p.birthMonth, p.birthDay, p.birthCirca, p.birthUnknown);
+  if (birth) parts.push(`Born: ${birth}`);
+  if (p.isDeceased) {
+    const death = formatFlexible(p.deathYear, p.deathMonth, p.deathDay, p.deathCirca, p.deathUnknown);
+    parts.push(death ? `Died: ${death}` : 'Died: date unknown');
   }
-
-  if (person.isDeceased) {
-    if (person.deathDateUnknown) {
-      parts.push('Died: date unknown');
-    } else {
-      const death = formatFlexible(person.deathYear, person.deathMonth, person.deathDay);
-      if (death) parts.push(`Died: ${death}`);
-    }
-  }
-
   return parts.length > 0 ? parts.join(' · ') : null;
 }
 
 function formatConductDate(post: Post): string {
-  if (post.conductDate) {
-    const base = formatDateTime(post.conductDate);
-    return post.conductEraNote ? `${base} (${post.conductEraNote})` : base;
-  }
-  const flexible = formatFlexible(post.conductYear, post.conductMonth, post.conductDay);
-  if (!flexible) return 'Date not specified';
-  return post.conductEraNote ? `${flexible} (${post.conductEraNote})` : flexible;
+  const base = formatFlexible(post.conductYear, post.conductMonth, post.conductDay, post.conductCirca, post.conductUnknown) ?? 'Date not specified';
+  return post.conductEraNote ? `${base} (${post.conductEraNote})` : base;
 }
 
 export default function PersonProfilePage() {
@@ -244,7 +235,7 @@ export default function PersonProfilePage() {
           <p style={{ fontSize: 13, color: '#5F5E5A', marginBottom: 32 }}>
             {person.personaCategory === 'HISTORICAL_FIGURE'
               ? `Record for ${person.roleTitle}, ${tenure}.`
-              : `Record while serving as ${person.roleTitle}, ${tenure}. Not a claim about current conduct.`}
+              : `Record for ${person.roleTitle}, ${tenure}.`}
           </p>
         )}
 

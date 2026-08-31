@@ -134,20 +134,35 @@ model Person {
   country             String
   personaCategory     PersonaCategory
   roleTitle           String
-  roleStartDate       DateTime?
-  roleEndDate         DateTime?
+
   roleStartYear       Int?
+  roleStartMonth      Int?
+  roleStartDay        Int?
+  roleStartCirca      Boolean             @default(false)
+  roleStartUnknown    Boolean             @default(false)
+
   roleEndYear         Int?
-  approximatePeriod   String?
-  birthYear           Int?                // signed, negative = BCE
+  roleEndMonth        Int?
+  roleEndDay          Int?
+  roleEndCirca        Boolean             @default(false)
+  roleEndUnknown      Boolean             @default(false)
+  stillServing        Boolean             @default(false) // explicit, rather than inferring from a null end date
+
+  approximatePeriod   String?             // free text fallback, e.g. "5th century BCE Athens"
+
+  birthYear           Int?
   birthMonth          Int?
   birthDay            Int?
-  birthDateUnknown    Boolean             @default(false)
+  birthCirca          Boolean             @default(false)
+  birthUnknown        Boolean             @default(false)
+
+  isDeceased          Boolean             @default(false)
   deathYear           Int?
   deathMonth          Int?
   deathDay            Int?
-  isDeceased          Boolean             @default(false)
-  deathDateUnknown    Boolean             @default(false)
+  deathCirca          Boolean             @default(false)
+  deathUnknown        Boolean             @default(false)
+
   roleEvidenceUrl     String?
   photoUrl            String?
   verificationStatus  VerificationStatus  @default(UNVERIFIED)
@@ -184,11 +199,13 @@ model Post {
   narrative                     String
   evidenceUrl                   String?
 
-  conductDate                   DateTime?  // null for historical conduct — use conductYear instead
-  conductYear                   Int?       // signed year, negative = BCE — historical figures only
-  conductMonth                  Int?       // 1-12, optional even when conductYear is set
-  conductDay                    Int?       // 1-31, optional
-  conductEraNote                String?    // free text, e.g. "circa", "before his trial"
+  conductYear                   Int
+  conductMonth                  Int?
+  conductDay                    Int?
+  conductCirca                  Boolean    @default(false)
+  conductUnknown                Boolean    @default(false)
+  conductEraNote                String?    // free text, e.g. "shortly before his trial"
+
   publicCapacityJustification   String
 
   status                        PostStatus @default(PENDING)

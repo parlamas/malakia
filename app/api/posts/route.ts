@@ -16,10 +16,11 @@ export async function POST(req: NextRequest) {
     behaviorId,
     narrative,
     evidenceUrl,
-    conductDate,
     conductYear,
     conductMonth,
     conductDay,
+    conductCirca,
+    conductUnknown,
     conductEraNote,
     publicCapacityJustification,
     subject,
@@ -29,13 +30,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
   }
 
-  if (!conductDate && !conductYear) {
-    return NextResponse.json({ error: 'Either a conduct date or a conduct year is required' }, { status: 400 });
-  }
-
-  const conductDateParsed = conductDate ? new Date(conductDate) : null;
-  if (conductDate && isNaN(conductDateParsed!.getTime())) {
-    return NextResponse.json({ error: 'Invalid conductDate' }, { status: 400 });
+  if (conductYear === null || conductYear === undefined) {
+    return NextResponse.json({ error: 'A conduct year is required' }, { status: 400 });
   }
 
   const behavior = await prisma.behavior.findUnique({ where: { id: behaviorId } });
@@ -45,7 +41,6 @@ export async function POST(req: NextRequest) {
 
   try {
     const result = await prisma.$transaction(async (tx) => {
-      // Resolve or create the Person
       let person;
       if (subject.existingPersonId) {
         person = await tx.person.findUnique({ where: { id: subject.existingPersonId } });
@@ -55,15 +50,17 @@ export async function POST(req: NextRequest) {
       } else {
         const {
           displayName, country, personaCategory, roleTitle,
-          roleStartDate, roleEndDate, roleStartYear, roleEndYear, approximatePeriod,
+          roleStartYear, roleStartMonth, roleStartDay, roleStartCirca, roleStartUnknown,
+          roleEndYear, roleEndMonth, roleEndDay, roleEndCirca, roleEndUnknown, stillServing,
+          approximatePeriod,
+          birthYear, birthMonth, birthDay, birthCirca, birthUnknown,
+          isDeceased, deathYear, deathMonth, deathDay, deathCirca, deathUnknown,
           roleEvidenceUrl, disambiguators, photoUrl,
         } = subject;
 
         if (!displayName || !country || !personaCategory || !roleTitle) {
           throw new HttpError(400, 'Missing required subject fields');
         }
-
-        const isHistorical = personaCategory === 'HISTORICAL_FIGURE';
 
         const possibleMatches = await tx.person.findMany({
           where: { displayName: { equals: displayName, mode: 'insensitive' }, country },
@@ -80,24 +77,35 @@ export async function POST(req: NextRequest) {
             country,
             personaCategory,
             roleTitle,
-            roleStartDate: roleStartDate ? new Date(roleStartDate) : null,
-            roleEndDate: roleEndDate ? new Date(roleEndDate) : null,
-            roleStartYear: isHistorical ? roleStartYear : null,
-            roleEndYear: isHistorical ? roleEndYear : null,
-            approximatePeriod: isHistorical ? approximatePeriod : null,
+            roleStartYear: roleStartYear ?? null,
+            roleStartMonth: roleStartMonth ?? null,
+            roleStartDay: roleStartDay ?? null,
+            roleStartCirca: !!roleStartCirca,
+            roleStartUnknown: !!roleStartUnknown,
+            roleEndYear: roleEndYear ?? null,
+            roleEndMonth: roleEndMonth ?? null,
+            roleEndDay: roleEndDay ?? null,
+            roleEndCirca: !!roleEndCirca,
+            roleEndUnknown: !!roleEndUnknown,
+            stillServing: !!stillServing,
+            approximatePeriod: approximatePeriod ?? null,
+            birthYear: birthYear ?? null,
+            birthMonth: birthMonth ?? null,
+            birthDay: birthDay ?? null,
+            birthCirca: !!birthCirca,
+            birthUnknown: !!birthUnknown,
+            isDeceased: !!isDeceased,
+            deathYear: deathYear ?? null,
+            deathMonth: deathMonth ?? null,
+            deathDay: deathDay ?? null,
+            deathCirca: !!deathCirca,
+            deathUnknown: !!deathUnknown,
             roleEvidenceUrl,
             photoUrl,
             verificationStatus: 'UNVERIFIED',
           },
         });
       }
-
-      const isHistoricalSubject = person.personaCategory === 'HISTORICAL_FIGURE';
-
-      // Conduct-date-vs-tenure scoping removed — a post's conduct date is no
-      // longer required to fall within the subject's tenure window. Conduct
-      // before or after the qualifying role is now in scope, since events in
-      // a person's life can be related regardless of when they held office.
 
       const post = await tx.post.create({
         data: {
@@ -107,11 +115,12 @@ export async function POST(req: NextRequest) {
           behaviorId,
           narrative,
           evidenceUrl,
-          conductDate: conductDateParsed,
-          conductYear: isHistoricalSubject ? conductYear : (conductDateParsed ? null : conductYear),
-          conductMonth: isHistoricalSubject ? conductMonth : (conductDateParsed ? null : conductMonth),
-          conductDay: isHistoricalSubject ? conductDay : (conductDateParsed ? null : conductDay),
-          conductEraNote: isHistoricalSubject ? conductEraNote : null,
+          conductYear,
+          conductMonth: conductMonth ?? null,
+          conductDay: conductDay ?? null,
+          conductCirca: !!conductCirca,
+          conductUnknown: !!conductUnknown,
+          conductEraNote: conductEraNote ?? null,
           publicCapacityJustification,
           status: 'PENDING',
         },
