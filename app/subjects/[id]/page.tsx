@@ -186,6 +186,7 @@ export default function SubjectProfilePage() {
 
   const [suggestionValue, setSuggestionValue] = useState('');
   const [suggestionReasoning, setSuggestionReasoning] = useState('');
+  const [suggestionReplyToId, setSuggestionReplyToId] = useState('');
   const [submittingSuggestion, setSubmittingSuggestion] = useState(false);
   const [suggestionError, setSuggestionError] = useState('');
   const [suggestionSuccess, setSuggestionSuccess] = useState(false);
@@ -279,6 +280,12 @@ export default function SubjectProfilePage() {
   async function handleSubmitSuggestion(e: React.FormEvent) {
     e.preventDefault();
     setSuggestionError('');
+
+    if (suggestions.length > 0 && !suggestionReplyToId) {
+      setSuggestionError('Click a suggestion above to select what you are replying to.');
+      return;
+    }
+
     setSubmittingSuggestion(true);
 
     const numeric = Number(suggestionValue);
@@ -291,7 +298,12 @@ export default function SubjectProfilePage() {
     const res = await fetch('/api/scale-suggestions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ subjectId: id, value: numeric, reasoning: suggestionReasoning || null }),
+      body: JSON.stringify({
+        subjectId: id,
+        value: numeric,
+        reasoning: suggestionReasoning || null,
+        replyToId: suggestionReplyToId || null,
+      }),
     });
 
     setSubmittingSuggestion(false);
@@ -304,6 +316,7 @@ export default function SubjectProfilePage() {
 
     setSuggestionValue('');
     setSuggestionReasoning('');
+    setSuggestionReplyToId('');
     setSuggestionSuccess((s) => !s);
   }
 
@@ -496,11 +509,11 @@ export default function SubjectProfilePage() {
 
           <div style={{ borderTop: '1px solid #E8E4DA', paddingTop: 16 }}>
             <p style={{ fontFamily: 'Georgia, serif', fontSize: 15, color: '#1C2024', marginBottom: 4 }}>
-  User-suggested values
-</p>
-<p style={{ fontSize: 11, color: '#5F5E5A', marginBottom: 10 }}>
-  All record IDs use UTC for date and time.
-</p>
+              User-suggested values
+            </p>
+            <p style={{ fontSize: 11, color: '#5F5E5A', marginBottom: 10 }}>
+              All record IDs use UTC for date and time.
+            </p>
 
             {suggestions.length === 0 && (
               <p style={{ color: '#5F5E5A', fontSize: 13, marginBottom: 16 }}>No suggestions yet.</p>
@@ -510,16 +523,31 @@ export default function SubjectProfilePage() {
               const suggestionDisplayId = computeDisplayId('S', s.user.username, s.createdAt);
               const draft = reactionDrafts[s.id] || { value: '', body: '' };
               const reactions = reactionsBySuggestion[s.id] || [];
+              const isSelectedAsReplyTarget = suggestionReplyToId === s.id;
 
               return (
-                <div key={s.id} style={{ marginBottom: 20, paddingBottom: 16, borderBottom: '1px solid #E8E4DA' }}>
+                <div
+                  key={s.id}
+                  style={{
+                    marginBottom: 20,
+                    paddingBottom: 16,
+                    borderBottom: '1px solid #E8E4DA',
+                    background: isSelectedAsReplyTarget ? '#FFF9E6' : 'transparent',
+                    border: isSelectedAsReplyTarget ? '1px solid #B8860B' : 'none',
+                    padding: isSelectedAsReplyTarget ? '10px' : '0 0 16px 0',
+                    cursor: isAuthenticated ? 'pointer' : 'default',
+                  }}
+                  onClick={() => isAuthenticated && setSuggestionReplyToId(s.id)}
+                >
                   <p style={{ fontWeight: 'bold', color: '#1D4ED8', fontSize: 11, marginBottom: 4 }}>
-  {s.user.username}'s suggestion — {suggestionDisplayId}
-</p>
-<BalanceScale value={s.value} width={180} />
-<p style={{ fontSize: 12, color: '#5F5E5A', marginTop: 4 }}>
-  Filed {new Date(s.createdAt).toLocaleDateString('en-GB', { year: 'numeric', month: 'short', day: 'numeric' })}
-</p>
+                    {s.user.username}'s suggestion — {suggestionDisplayId}
+                    {s.replyTo && ` to ${computeDisplayId('S', s.replyTo.user.username, s.replyTo.createdAt)}`}
+                    {isSelectedAsReplyTarget && ' — replying to this'}
+                  </p>
+                  <BalanceScale value={s.value} width={180} />
+                  <p style={{ fontSize: 12, color: '#5F5E5A', marginTop: 4 }}>
+                    Filed {new Date(s.createdAt).toLocaleDateString('en-GB', { year: 'numeric', month: 'short', day: 'numeric' })}
+                  </p>
                   {s.reasoning && (
                     <p style={{ fontSize: 13, color: '#1C2024', marginTop: 4, marginBottom: 8 }}>{s.reasoning}</p>
                   )}
@@ -527,9 +555,8 @@ export default function SubjectProfilePage() {
                   {reactions.map((r) => (
                     <div key={r.id} style={{ marginLeft: 20, marginTop: 10, paddingLeft: 12, borderLeft: '2px solid #B4B2A9' }}>
                       <p style={{ fontWeight: 'bold', color: '#1D4ED8', fontSize: 11, marginBottom: 4 }}>
-  {s.user.username}'s suggestion — {suggestionDisplayId}
-  {s.replyTo && ` to ${computeDisplayId('S', s.replyTo.user.username, s.replyTo.createdAt)}`}
-</p>
+                        {r.user.username} reacts to {suggestionDisplayId}
+                      </p>
                       {r.value !== null && r.value !== undefined && (
                         <BalanceScale value={r.value} width={140} />
                       )}
@@ -541,7 +568,7 @@ export default function SubjectProfilePage() {
                   ))}
 
                   {isAuthenticated && (
-                    <div style={{ marginLeft: 20, marginTop: 10 }}>
+                    <div style={{ marginLeft: 20, marginTop: 10 }} onClick={(e) => e.stopPropagation()}>
                       <div style={{ display: 'flex', gap: 8, marginBottom: 6 }}>
                         <input
                           type="number"
@@ -575,6 +602,13 @@ export default function SubjectProfilePage() {
 
             {isAuthenticated ? (
               <form onSubmit={handleSubmitSuggestion} style={{ marginTop: 16 }}>
+                {suggestions.length > 0 && (
+                  <p style={{ fontSize: 12, color: suggestionReplyToId ? '#2F5D50' : '#7A2E2E', marginBottom: 8 }}>
+                    {suggestionReplyToId
+                      ? `Replying to ${computeDisplayId('S', suggestions.find((s) => s.id === suggestionReplyToId)?.user.username ?? '', suggestions.find((s) => s.id === suggestionReplyToId)?.createdAt ?? '')}`
+                      : 'Click a suggestion above to select what you\'re replying to.'}
+                  </p>
+                )}
                 <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
                   <input
                     type="number"
