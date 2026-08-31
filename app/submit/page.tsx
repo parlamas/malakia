@@ -5,6 +5,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import DateSelect from '@/components/DateSelect';
+import FlexibleDateSelect, { FlexibleDate } from '@/components/FlexibleDateSelect';
 
 type Axis = 'CALLOUS' | 'CIVIC';
 
@@ -20,6 +21,7 @@ interface PersonMatch {
   disambiguators: string | null;
   country: string;
   roleTitle: string;
+  personaCategory: string;
 }
 
 const PERSONA_CATEGORIES = [
@@ -27,7 +29,10 @@ const PERSONA_CATEGORIES = [
   { value: 'APPOINTED_OFFICIAL', label: 'Appointed official' },
   { value: 'JOURNALIST', label: 'Journalist' },
   { value: 'GOVERNMENT_MEMBER', label: 'Government member (judiciary, legislature, law enforcement)' },
+  { value: 'HISTORICAL_FIGURE', label: 'Historical or classical figure (any era)' },
 ];
+
+const emptyFlexDate: FlexibleDate = { year: null, month: null, day: null };
 
 export default function SubmitPage() {
   const [authStatus, setAuthStatus] = useState<'checking' | 'authenticated' | 'unauthenticated'>('checking');
@@ -38,11 +43,14 @@ export default function SubmitPage() {
   const [narrative, setNarrative] = useState('');
   const [evidenceUrl, setEvidenceUrl] = useState('');
   const [conductDate, setConductDate] = useState('');
+  const [historicalConductDate, setHistoricalConductDate] = useState<FlexibleDate>(emptyFlexDate);
+  const [conductEraNote, setConductEraNote] = useState('');
   const [justification, setJustification] = useState('');
 
   const [personQuery, setPersonQuery] = useState('');
   const [matches, setMatches] = useState<PersonMatch[]>([]);
   const [selectedPersonId, setSelectedPersonId] = useState<string | null>(null);
+  const [selectedPersonCategory, setSelectedPersonCategory] = useState<string | null>(null);
 
   const [newPerson, setNewPerson] = useState({
     displayName: '',
@@ -54,6 +62,9 @@ export default function SubmitPage() {
     roleEvidenceUrl: '',
     disambiguators: '',
   });
+  const [historicalStart, setHistoricalStart] = useState<FlexibleDate>(emptyFlexDate);
+  const [historicalEnd, setHistoricalEnd] = useState<FlexibleDate>(emptyFlexDate);
+  const [approximatePeriod, setApproximatePeriod] = useState('');
 
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
@@ -61,12 +72,14 @@ export default function SubmitPage() {
   const [status, setStatus] = useState<'idle' | 'submitting' | 'error' | 'success'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
 
+  const isHistoricalNewPerson = !selectedPersonId && newPerson.personaCategory === 'HISTORICAL_FIGURE';
+  const isHistoricalSelected = !!selectedPersonId && selectedPersonCategory === 'HISTORICAL_FIGURE';
+  const isHistorical = isHistoricalNewPerson || isHistoricalSelected;
+
   useEffect(() => {
     fetch('/api/auth/me', { credentials: 'include' })
       .then((r) => r.json())
-      .then((data) => {
-        setAuthStatus(data.authenticated ? 'authenticated' : 'unauthenticated');
-      })
+      .then((data) => setAuthStatus(data.authenticated ? 'authenticated' : 'unauthenticated'))
       .catch(() => setAuthStatus('unauthenticated'));
   }, []);
 
@@ -119,25 +132,38 @@ export default function SubmitPage() {
           country: newPerson.country,
           personaCategory: newPerson.personaCategory,
           roleTitle: newPerson.roleTitle,
-          roleStartDate: newPerson.roleStartDate,
-          roleEndDate: newPerson.roleEndDate || null,
+          roleStartDate: isHistoricalNewPerson ? null : newPerson.roleStartDate,
+          roleEndDate: isHistoricalNewPerson ? null : (newPerson.roleEndDate || null),
+          roleStartYear: isHistoricalNewPerson ? historicalStart.year : null,
+          roleEndYear: isHistoricalNewPerson ? historicalEnd.year : null,
+          approximatePeriod: isHistoricalNewPerson ? (approximatePeriod || null) : null,
           roleEvidenceUrl: newPerson.roleEvidenceUrl || null,
           disambiguators: newPerson.disambiguators || null,
           photoUrl: photoUrl || null,
         };
 
+    const body: Record<string, unknown> = {
+      axis,
+      behaviorId,
+      narrative,
+      evidenceUrl: evidenceUrl || null,
+      publicCapacityJustification: justification,
+      subject,
+    };
+
+    if (isHistorical) {
+      body.conductYear = historicalConductDate.year;
+      body.conductMonth = historicalConductDate.month;
+      body.conductDay = historicalConductDate.day;
+      body.conductEraNote = conductEraNote || null;
+    } else {
+      body.conductDate = conductDate;
+    }
+
     const res = await fetch('/api/posts', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        axis,
-        behaviorId,
-        narrative,
-        evidenceUrl: evidenceUrl || null,
-        conductDate,
-        publicCapacityJustification: justification,
-        subject,
-      }),
+      body: JSON.stringify(body),
     });
 
     const data = await res.json();
@@ -159,7 +185,6 @@ export default function SubmitPage() {
   }
 
   const axisColor = axis === 'CALLOUS' ? '#7A2E2E' : '#2F5D50';
-  const axisBg = axis === 'CALLOUS' ? '#F3E8E6' : '#E7EEEA';
 
   if (authStatus === 'checking') {
     return (
@@ -229,10 +254,10 @@ export default function SubmitPage() {
           File a record
         </h1>
         <p style={{ color: '#5F5E5A', marginBottom: 32, lineHeight: 1.6 }}>
-          Records apply only to public officials, journalists, and government members, for conduct during their time in that role.
+          Records apply to public officials, journalists, government members, and documented historical or classical figures.
         </p>
 
-        {/* Axis toggle — two filing tabs */}
+        {/* Axis toggle */}
         <div style={{ display: 'flex', marginBottom: 32 }}>
           {(['CALLOUS', 'CIVIC'] as Axis[]).map((a) => {
             const active = axis === a;
@@ -284,6 +309,7 @@ export default function SubmitPage() {
                         key={m.id}
                         onClick={() => {
                           setSelectedPersonId(m.id);
+                          setSelectedPersonCategory(m.personaCategory);
                           setMatches([]);
                         }}
                         style={{
@@ -312,7 +338,7 @@ export default function SubmitPage() {
                 <div style={grid2}>
                   <input placeholder="Full name" value={newPerson.displayName}
                     onChange={(e) => setNewPerson({ ...newPerson, displayName: e.target.value })} style={inputStyle} />
-                  <input placeholder="Country" value={newPerson.country}
+                  <input placeholder="Country (or region of antiquity, e.g. Athens)" value={newPerson.country}
                     onChange={(e) => setNewPerson({ ...newPerson, country: e.target.value })} style={inputStyle} />
                 </div>
 
@@ -324,33 +350,54 @@ export default function SubmitPage() {
                   ))}
                 </select>
 
-                <input placeholder="Role or title (e.g. Mayor of Aarhus)" value={newPerson.roleTitle}
+                <input placeholder="Role or title (e.g. Mayor of Aarhus, or Philosopher)" value={newPerson.roleTitle}
                   onChange={(e) => setNewPerson({ ...newPerson, roleTitle: e.target.value })}
                   style={{ ...inputStyle, marginTop: 10 }} />
 
-                <div style={grid2}>
-                  <label style={dateLabel}>
-                    Role start date
-                    <DateSelect
-                      value={newPerson.roleStartDate}
-                      onChange={(v) => setNewPerson({ ...newPerson, roleStartDate: v })}
-                    />
-                  </label>
-                  <label style={dateLabel}>
-                    Role end date (leave blank if still serving)
-                    <DateSelect
-                      value={newPerson.roleEndDate}
-                      onChange={(v) => setNewPerson({ ...newPerson, roleEndDate: v })}
-                    />
-                  </label>
-                </div>
+                {isHistoricalNewPerson ? (
+                  <>
+                    <label style={dateLabel}>
+                      Approximate period (optional, e.g. "5th century BCE Athens")
+                      <input
+                        value={approximatePeriod}
+                        onChange={(e) => setApproximatePeriod(e.target.value)}
+                        style={{ ...inputStyle, marginTop: 4 }}
+                      />
+                    </label>
+                    <label style={dateLabel}>
+                      Earliest date they're documented as active in this role (optional)
+                      <FlexibleDateSelect value={historicalStart} onChange={setHistoricalStart} />
+                    </label>
+                    <label style={dateLabel}>
+                      Latest date, e.g. death (optional)
+                      <FlexibleDateSelect value={historicalEnd} onChange={setHistoricalEnd} />
+                    </label>
+                  </>
+                ) : (
+                  <div style={grid2}>
+                    <label style={dateLabel}>
+                      Role start date
+                      <DateSelect
+                        value={newPerson.roleStartDate}
+                        onChange={(v) => setNewPerson({ ...newPerson, roleStartDate: v })}
+                      />
+                    </label>
+                    <label style={dateLabel}>
+                      Role end date (leave blank if still serving)
+                      <DateSelect
+                        value={newPerson.roleEndDate}
+                        onChange={(v) => setNewPerson({ ...newPerson, roleEndDate: v })}
+                      />
+                    </label>
+                  </div>
+                )}
 
-                <input placeholder="Link supporting their public role (optional)" value={newPerson.roleEvidenceUrl}
+                <input placeholder="Link supporting their role or historical documentation (optional)" value={newPerson.roleEvidenceUrl}
                   onChange={(e) => setNewPerson({ ...newPerson, roleEvidenceUrl: e.target.value })}
                   style={{ ...inputStyle, marginTop: 10 }} />
 
                 <label style={dateLabel}>
-                  Photo of this person (optional)
+                  Photo or depiction of this person (optional)
                   <input
                     type="file"
                     accept="image/*"
@@ -369,7 +416,7 @@ export default function SubmitPage() {
             {selectedPersonId && (
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', background: '#fff', border: '1px solid #B4B2A9' }}>
                 <span style={{ fontSize: 14 }}>Filing against selected record</span>
-                <button type="button" onClick={() => setSelectedPersonId(null)} style={{ background: 'none', border: 'none', color: '#7A2E2E', cursor: 'pointer', fontSize: 13 }}>
+                <button type="button" onClick={() => { setSelectedPersonId(null); setSelectedPersonCategory(null); }} style={{ background: 'none', border: 'none', color: '#7A2E2E', cursor: 'pointer', fontSize: 13 }}>
                   Change
                 </button>
               </div>
@@ -387,10 +434,27 @@ export default function SubmitPage() {
               ))}
             </select>
 
-            <label style={dateLabel}>
-              Date the conduct occurred
-              <DateSelect value={conductDate} onChange={setConductDate} required />
-            </label>
+            {isHistorical ? (
+              <>
+                <label style={dateLabel}>
+                  Date the conduct occurred (year required, month/day optional)
+                  <FlexibleDateSelect value={historicalConductDate} onChange={setHistoricalConductDate} />
+                </label>
+                <label style={dateLabel}>
+                  Note on dating (optional, e.g. "circa", "shortly before his trial")
+                  <input
+                    value={conductEraNote}
+                    onChange={(e) => setConductEraNote(e.target.value)}
+                    style={{ ...inputStyle, marginTop: 4 }}
+                  />
+                </label>
+              </>
+            ) : (
+              <label style={dateLabel}>
+                Date the conduct occurred
+                <DateSelect value={conductDate} onChange={setConductDate} required />
+              </label>
+            )}
 
             <textarea
               placeholder="Describe what happened, specifically"
@@ -401,7 +465,7 @@ export default function SubmitPage() {
             />
 
             <input
-              placeholder="Link to supporting evidence (optional)"
+              placeholder="Link to supporting evidence or source (optional)"
               value={evidenceUrl}
               onChange={(e) => setEvidenceUrl(e.target.value)}
               style={{ ...inputStyle, marginTop: 10 }}
@@ -410,9 +474,13 @@ export default function SubmitPage() {
 
           {/* Justification */}
           <fieldset style={{ border: 'none', padding: 0, marginBottom: 28 }}>
-            <legend style={sectionLabel}>Public-capacity justification</legend>
+            <legend style={sectionLabel}>
+              {isHistorical ? 'Documentation basis' : 'Public-capacity justification'}
+            </legend>
             <p style={{ fontSize: 13, color: '#5F5E5A', marginBottom: 8 }}>
-              Explain why this falls within the subject's public role — not their private life.
+              {isHistorical
+                ? 'Explain the historical basis for this — a source, text, or well-documented account.'
+                : "Explain why this falls within the subject's public role — not their private life."}
             </p>
             <textarea
               value={justification}

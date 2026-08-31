@@ -17,16 +17,24 @@ export async function POST(req: NextRequest) {
     narrative,
     evidenceUrl,
     conductDate,
+    conductYear,
+    conductMonth,
+    conductDay,
+    conductEraNote,
     publicCapacityJustification,
-    subject, // { existingPersonId? } OR { displayName, country, personaCategory, roleTitle, roleStartDate, roleEndDate, roleEvidenceUrl, disambiguators?, photoUrl? }
+    subject,
   } = body;
 
-  if (!axis || !behaviorId || !narrative || !conductDate || !publicCapacityJustification || !subject) {
+  if (!axis || !behaviorId || !narrative || !publicCapacityJustification || !subject) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
   }
 
-  const conductDateParsed = new Date(conductDate);
-  if (isNaN(conductDateParsed.getTime())) {
+  if (!conductDate && !conductYear) {
+    return NextResponse.json({ error: 'Either a conduct date or a conduct year is required' }, { status: 400 });
+  }
+
+  const conductDateParsed = conductDate ? new Date(conductDate) : null;
+  if (conductDate && isNaN(conductDateParsed!.getTime())) {
     return NextResponse.json({ error: 'Invalid conductDate' }, { status: 400 });
   }
 
@@ -38,12 +46,22 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Referenced person not found' }, { status: 404 });
     }
   } else {
-    const { displayName, country, personaCategory, roleTitle, roleStartDate, roleEndDate, roleEvidenceUrl, disambiguators, photoUrl } = subject;
-    if (!displayName || !country || !personaCategory || !roleTitle || !roleStartDate) {
+    const {
+      displayName, country, personaCategory, roleTitle,
+      roleStartDate, roleEndDate, roleStartYear, roleEndYear, approximatePeriod,
+      roleEvidenceUrl, disambiguators, photoUrl,
+    } = subject;
+
+    if (!displayName || !country || !personaCategory || !roleTitle) {
       return NextResponse.json({ error: 'Missing required subject fields' }, { status: 400 });
     }
 
-    // Loose duplicate check — surface possible matches rather than silently creating a duplicate
+    const isHistorical = personaCategory === 'HISTORICAL_FIGURE';
+
+    if (!isHistorical && !roleStartDate) {
+      return NextResponse.json({ error: 'roleStartDate is required for this persona category' }, { status: 400 });
+    }
+
     const possibleMatches = await prisma.person.findMany({
       where: { displayName: { equals: displayName, mode: 'insensitive' }, country },
       take: 5,
@@ -62,8 +80,11 @@ export async function POST(req: NextRequest) {
         country,
         personaCategory,
         roleTitle,
-        roleStartDate: new Date(roleStartDate),
+        roleStartDate: roleStartDate ? new Date(roleStartDate) : null,
         roleEndDate: roleEndDate ? new Date(roleEndDate) : null,
+        roleStartYear: isHistorical ? roleStartYear : null,
+        roleEndYear: isHistorical ? roleEndYear : null,
+        approximatePeriod: isHistorical ? approximatePeriod : null,
         roleEvidenceUrl,
         photoUrl,
         verificationStatus: 'UNVERIFIED',
@@ -71,18 +92,26 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  // Conduct-date-vs-tenure validation — the load-bearing scope check
-  if (conductDateParsed < person.roleStartDate) {
-    return NextResponse.json(
-      { error: 'Conduct date is before the subject\'s tenure began' },
-      { status: 422 },
-    );
-  }
-  if (person.roleEndDate && conductDateParsed > person.roleEndDate) {
-    return NextResponse.json(
-      { error: 'Conduct date is after the subject left the qualifying role — out of scope' },
-      { status: 422 },
-    );
+  const isHistoricalSubject = person.personaCategory === 'HISTORICAL_FIGURE';
+
+  // Tenure-vs-conduct scoping only applies to living/modern role-holders.
+  // Historical figures have no tenure gate — the whole documented life is in scope.
+  if (!isHistoricalSubject) {
+    if (!conductDateParsed) {
+      return NextResponse.json({ error: 'conductDate is required for this persona category' }, { status: 400 });
+    }
+    if (person.roleStartDate && conductDateParsed < person.roleStartDate) {
+      return NextResponse.json(
+        { error: 'Conduct date is before the subject\'s tenure began' },
+        { status: 422 },
+      );
+    }
+    if (person.roleEndDate && conductDateParsed > person.roleEndDate) {
+      return NextResponse.json(
+        { error: 'Conduct date is after the subject left the qualifying role — out of scope' },
+        { status: 422 },
+      );
+    }
   }
 
   const behavior = await prisma.behavior.findUnique({ where: { id: behaviorId } });
@@ -99,8 +128,12 @@ export async function POST(req: NextRequest) {
       narrative,
       evidenceUrl,
       conductDate: conductDateParsed,
+      conductYear: isHistoricalSubject ? conductYear : null,
+      conductMonth: isHistoricalSubject ? conductMonth : null,
+      conductDay: isHistoricalSubject ? conductDay : null,
+      conductEraNote: isHistoricalSubject ? conductEraNote : null,
       publicCapacityJustification,
-      status: 'PENDING', // awaits language moderation
+      status: 'PENDING',
     },
   });
 

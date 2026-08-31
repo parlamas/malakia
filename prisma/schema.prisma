@@ -99,6 +99,7 @@ enum PersonaCategory {
   APPOINTED_OFFICIAL
   JOURNALIST
   GOVERNMENT_MEMBER // judiciary, legislature, law enforcement
+  HISTORICAL_FIGURE // documented figure from any era, not scoped to a tenure
 }
 
 enum Axis {
@@ -133,8 +134,11 @@ model Person {
   country             String
   personaCategory     PersonaCategory
   roleTitle           String
-  roleStartDate       DateTime
-  roleEndDate         DateTime?           // null = still serving
+  roleStartDate       DateTime?           // null for HISTORICAL_FIGURE — use roleStartYear instead
+  roleEndDate         DateTime?           // null = still serving, or historical
+  roleStartYear       Int?                // signed year, negative = BCE — historical figures only
+  roleEndYear         Int?
+  approximatePeriod   String?             // free text, e.g. "5th century BCE Athens" — historical figures only
   roleEvidenceUrl     String?
   photoUrl            String?
   verificationStatus  VerificationStatus  @default(UNVERIFIED)
@@ -171,7 +175,11 @@ model Post {
   narrative                     String
   evidenceUrl                   String?
 
-  conductDate                   DateTime   // validated against subject's tenure in the API layer
+  conductDate                   DateTime?  // null for historical conduct — use conductYear instead
+  conductYear                   Int?       // signed year, negative = BCE — historical figures only
+  conductMonth                  Int?       // 1-12, optional even when conductYear is set
+  conductDay                    Int?       // 1-31, optional
+  conductEraNote                String?    // free text, e.g. "circa", "before his trial"
   publicCapacityJustification   String
 
   status                        PostStatus @default(PENDING)
