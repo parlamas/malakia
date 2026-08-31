@@ -2,26 +2,22 @@
 
 "use client"
 
-import { useRouter } from "next/navigation"
-
 export default function SignOutButton() {
-  const router = useRouter()
-
   const handleSignOut = async () => {
     try {
       await fetch("/api/auth/logout", {
         method: "POST",
       })
     } finally {
-      router.push("/auth/signin")
-      router.refresh()
+      window.location.href = "/auth/signin"
     }
   }
 
   return (
     <button
       onClick={handleSignOut}
-      className="bg-gray-200 text-black px-4 py-2 rounded hover:bg-gray-300"
+      className="bg-[#8B4513] text-white rounded hover:bg-[#6f3610] transition-colors"
+      style={{ paddingLeft: '20px', paddingRight: '20px', paddingTop: '8px', paddingBottom: '8px' }}
     >
       Sign Out
     </button>
