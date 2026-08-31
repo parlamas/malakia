@@ -21,7 +21,7 @@ export default function BalanceScale({
 
   return (
     <div style={{ textAlign: 'center', fontFamily: 'Inter, system-ui, sans-serif' }}>
-      <svg viewBox="0 0 400 260" width="100%" style={{ maxWidth: 360, display: 'block', margin: '0 auto' }}>
+      <svg viewBox="0 0 400 290" width="100%" style={{ maxWidth: 360, display: 'block', margin: '0 auto' }}>
         {/* Static stand */}
         <polygon points="150,240 250,240 200,190" fill="#8B4513" />
         <rect x="196" y={pivotY} width="8" height={190 - pivotY} fill="#8B4513" />
@@ -55,11 +55,11 @@ export default function BalanceScale({
           <ellipse cx={pivotX + 120} cy={pivotY + 58} rx="36" ry="8" fill="#2F5D50" opacity="0.85" />
         </g>
 
-        {/* Labels */}
-        <text x={pivotX - 120} y={pivotY + 100} textAnchor="middle" fontSize="12" fontFamily="ui-monospace, monospace" fill="#7A2E2E" letterSpacing="0.05em">
+        {/* Labels — pushed below the pans' full swing range, bold */}
+        <text x={pivotX - 120} y={pivotY + 150} textAnchor="middle" fontSize="13" fontWeight="bold" fontFamily="ui-monospace, monospace" fill="#7A2E2E" letterSpacing="0.05em">
           {leftLabel}
         </text>
-        <text x={pivotX + 120} y={pivotY + 100} textAnchor="middle" fontSize="12" fontFamily="ui-monospace, monospace" fill="#2F5D50" letterSpacing="0.05em">
+        <text x={pivotX + 120} y={pivotY + 150} textAnchor="middle" fontSize="13" fontWeight="bold" fontFamily="ui-monospace, monospace" fill="#2F5D50" letterSpacing="0.05em">
           {rightLabel}
         </text>
       </svg>
@@ -67,6 +67,7 @@ export default function BalanceScale({
       <p style={{
         fontFamily: 'Georgia, serif',
         fontSize: 22,
+        fontWeight: 'bold',
         color: clamped >= 0 ? '#2F5D50' : '#7A2E2E',
         marginTop: 8,
       }}>
