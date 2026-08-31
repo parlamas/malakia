@@ -11,25 +11,25 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json();
-  const { personId, value, reasoning } = body;
+  const { subjectId, value, reasoning } = body;
 
-  if (!personId || value === undefined || value === null) {
-    return NextResponse.json({ error: 'personId and value are required' }, { status: 400 });
+  if (!subjectId || value === undefined || value === null) {
+    return NextResponse.json({ error: 'subjectId and value are required' }, { status: 400 });
   }
 
   const numericValue = Number(value);
-  if (!Number.isInteger(numericValue) || numericValue < -100 || numericValue > 100) {
-    return NextResponse.json({ error: 'value must be an integer between -100 and 100' }, { status: 400 });
+  if (!Number.isInteger(numericValue) || numericValue < -1000 || numericValue > 1000) {
+    return NextResponse.json({ error: 'value must be an integer between -1000 and 1000' }, { status: 400 });
   }
 
-  const person = await prisma.person.findUnique({ where: { id: personId } });
-  if (!person) {
-    return NextResponse.json({ error: 'Person not found' }, { status: 404 });
+  const subject = await prisma.subject.findUnique({ where: { id: subjectId } });
+  if (!subject) {
+    return NextResponse.json({ error: 'Subject not found' }, { status: 404 });
   }
 
   const suggestion = await prisma.scaleSuggestion.create({
     data: {
-      personId,
+      subjectId,
       userId: user.id,
       value: numericValue,
       reasoning: reasoning || null,
@@ -41,14 +41,14 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
-  const personId = searchParams.get('personId');
+  const subjectId = searchParams.get('subjectId');
 
-  if (!personId) {
-    return NextResponse.json({ error: 'personId query parameter required' }, { status: 400 });
+  if (!subjectId) {
+    return NextResponse.json({ error: 'subjectId query parameter required' }, { status: 400 });
   }
 
   const suggestions = await prisma.scaleSuggestion.findMany({
-    where: { personId },
+    where: { subjectId },
     include: { user: { select: { id: true, username: true } } },
     orderBy: { createdAt: 'desc' },
   });

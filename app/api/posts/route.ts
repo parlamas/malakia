@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
     conductUnknown,
     conductEraNote,
     publicCapacityJustification,
-    subject,
+    subject, // { existingSubjectId? } OR { subjectType, displayName, description?, ...type-specific fields }
   } = body;
 
   if (!axis || !behaviorId || !narrative || !publicCapacityJustification || !subject) {
@@ -41,42 +41,45 @@ export async function POST(req: NextRequest) {
 
   try {
     const result = await prisma.$transaction(async (tx) => {
-      let person;
-      if (subject.existingPersonId) {
-        person = await tx.person.findUnique({ where: { id: subject.existingPersonId } });
-        if (!person) {
-          throw new HttpError(404, 'Referenced person not found');
+      let subjectRecord;
+      if (subject.existingSubjectId) {
+        subjectRecord = await tx.subject.findUnique({ where: { id: subject.existingSubjectId } });
+        if (!subjectRecord) {
+          throw new HttpError(404, 'Referenced subject not found');
         }
       } else {
         const {
-          displayName, country, personaCategory, roleTitle,
+          subjectType, displayName, description, disambiguators, associatedContext,
+          personaCategory, roleTitle,
           roleStartYear, roleStartMonth, roleStartDay, roleStartCirca, roleStartUnknown,
           roleEndYear, roleEndMonth, roleEndDay, roleEndCirca, roleEndUnknown, stillServing,
           approximatePeriod,
           birthYear, birthMonth, birthDay, birthCirca, birthUnknown,
           isDeceased, deathYear, deathMonth, deathDay, deathCirca, deathUnknown,
-          roleEvidenceUrl, disambiguators, photoUrl,
+          roleEvidenceUrl, photoUrl,
         } = subject;
 
-        if (!displayName || !country || !personaCategory || !roleTitle) {
-          throw new HttpError(400, 'Missing required subject fields');
+        if (!subjectType || !displayName) {
+          throw new HttpError(400, 'subjectType and displayName are required');
         }
 
-        const possibleMatches = await tx.person.findMany({
-          where: { displayName: { equals: displayName, mode: 'insensitive' }, country },
+        const possibleMatches = await tx.subject.findMany({
+          where: { displayName: { equals: displayName, mode: 'insensitive' }, subjectType },
           take: 5,
         });
-        if (possibleMatches.length > 0 && !subject.confirmNewPerson) {
+        if (possibleMatches.length > 0 && !subject.confirmNewSubject) {
           throw new DisambiguationNeeded(possibleMatches);
         }
 
-        person = await tx.person.create({
+        subjectRecord = await tx.subject.create({
           data: {
+            subjectType,
             displayName,
-            disambiguators,
-            country,
-            personaCategory,
-            roleTitle,
+            description: description ?? null,
+            disambiguators: disambiguators ?? null,
+            associatedContext: associatedContext ?? null,
+            personaCategory: personaCategory ?? null,
+            roleTitle: roleTitle ?? null,
             roleStartYear: roleStartYear ?? null,
             roleStartMonth: roleStartMonth ?? null,
             roleStartDay: roleStartDay ?? null,
@@ -100,8 +103,8 @@ export async function POST(req: NextRequest) {
             deathDay: deathDay ?? null,
             deathCirca: !!deathCirca,
             deathUnknown: !!deathUnknown,
-            roleEvidenceUrl,
-            photoUrl,
+            roleEvidenceUrl: roleEvidenceUrl ?? null,
+            photoUrl: photoUrl ?? null,
             verificationStatus: 'UNVERIFIED',
           },
         });
@@ -110,7 +113,7 @@ export async function POST(req: NextRequest) {
       const post = await tx.post.create({
         data: {
           authorUserId: user.id,
-          subjectPersonId: person.id,
+          subjectId: subjectRecord.id,
           axis,
           behaviorId,
           narrative,
@@ -126,7 +129,7 @@ export async function POST(req: NextRequest) {
         },
       });
 
-      return { post, person };
+      return { post, subject: subjectRecord };
     });
 
     return NextResponse.json(result, { status: 201 });
@@ -163,13 +166,13 @@ class DisambiguationNeeded extends Error {
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
-  const personId = searchParams.get('personId');
+  const subjectId = searchParams.get('subjectId');
   const axis = searchParams.get('axis') as 'CALLOUS' | 'CIVIC' | null;
 
   const posts = await prisma.post.findMany({
     where: {
       status: 'PUBLISHED',
-      ...(personId ? { subjectPersonId: personId } : {}),
+      ...(subjectId ? { subjectId } : {}),
       ...(axis ? { axis } : {}),
     },
     include: { behavior: true, subject: true, contests: true },
