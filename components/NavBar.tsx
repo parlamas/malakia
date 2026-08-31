@@ -67,7 +67,7 @@ style={{ marginLeft: '40px' }}
     <Link
       href="/auth/signin"
       className="bg-[#8B4513] text-white rounded hover:bg-[#6f3610] transition-colors"
-      style={{ paddingLeft: '32px', paddingRight: '32px', paddingTop: '8px', paddingBottom: '8px' }}
+      style={{ paddingLeft: '20px', paddingRight: '20px', paddingTop: '8px', paddingBottom: '8px' }}
     >
       Sign In
     </Link>
