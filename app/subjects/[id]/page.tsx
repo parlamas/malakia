@@ -1,4 +1,4 @@
-// app/persons/[id]/page.tsx
+// app/subjects/[id]/page.tsx
 
 'use client';
 
@@ -36,13 +36,15 @@ interface Post {
   contests: Contest[];
 }
 
-interface PersonData {
+interface SubjectData {
   id: string;
+  subjectType: string;
   displayName: string;
+  description: string | null;
   disambiguators: string | null;
-  country: string;
-  personaCategory: string;
-  roleTitle: string;
+  associatedContext: string | null;
+  personaCategory: string | null;
+  roleTitle: string | null;
   roleStartYear: number | null;
   roleStartMonth: number | null;
   roleStartDay: number | null;
@@ -71,9 +73,8 @@ interface PersonData {
   adminScaleValue: number | null;
 }
 
-interface PersonRecord {
-  person: PersonData;
-  record: { callousCount: number; civicCount: number; netScore: number } | null;
+interface SubjectRecord {
+  subject: SubjectData;
   posts: Post[];
   notice?: string;
 }
@@ -86,6 +87,17 @@ interface ScaleSuggestion {
   user: { username: string };
 }
 
+const SUBJECT_TYPE_LABELS: Record<string, string> = {
+  PERSON: 'Person',
+  INSTITUTION: 'Institution',
+  ORGANIZATION: 'Organization',
+  BUSINESS: 'Business',
+  NATION: 'Nation',
+  PRACTICE: 'Practice',
+  TRADITION: 'Tradition',
+  IDEOLOGY: 'Ideology',
+};
+
 const PERSONA_LABELS: Record<string, string> = {
   ELECTED_OFFICIAL: 'Elected official',
   APPOINTED_OFFICIAL: 'Appointed official',
@@ -93,6 +105,9 @@ const PERSONA_LABELS: Record<string, string> = {
   GOVERNMENT_MEMBER: 'Government member',
   HISTORICAL_FIGURE: 'Historical or classical figure',
 };
+
+const HAS_TENURE_FIELDS = ['PERSON', 'INSTITUTION', 'ORGANIZATION', 'BUSINESS', 'NATION'];
+const HAS_BIRTH_DEATH = ['PERSON'];
 
 const MONTH_NAMES = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -121,21 +136,23 @@ function formatFlexible(
   return `${prefix}${monthName} ${absYear} ${era}`;
 }
 
-function formatTenure(p: PersonData): string {
-  if (p.approximatePeriod) return p.approximatePeriod;
-  const start = formatFlexible(p.roleStartYear, p.roleStartMonth, p.roleStartDay, p.roleStartCirca, p.roleStartUnknown);
-  if (!start) return 'Period not specified';
-  if (p.stillServing) return `${start} – present`;
-  const end = formatFlexible(p.roleEndYear, p.roleEndMonth, p.roleEndDay, p.roleEndCirca, p.roleEndUnknown);
+function formatTenure(s: SubjectData): string | null {
+  if (!HAS_TENURE_FIELDS.includes(s.subjectType)) return null;
+  if (s.approximatePeriod) return s.approximatePeriod;
+  const start = formatFlexible(s.roleStartYear, s.roleStartMonth, s.roleStartDay, s.roleStartCirca, s.roleStartUnknown);
+  if (!start) return null;
+  if (s.stillServing) return `${start} – present`;
+  const end = formatFlexible(s.roleEndYear, s.roleEndMonth, s.roleEndDay, s.roleEndCirca, s.roleEndUnknown);
   return end ? `${start} – ${end}` : start;
 }
 
-function formatBirthDeath(p: PersonData): string | null {
+function formatBirthDeath(s: SubjectData): string | null {
+  if (!HAS_BIRTH_DEATH.includes(s.subjectType)) return null;
   const parts: string[] = [];
-  const birth = formatFlexible(p.birthYear, p.birthMonth, p.birthDay, p.birthCirca, p.birthUnknown);
+  const birth = formatFlexible(s.birthYear, s.birthMonth, s.birthDay, s.birthCirca, s.birthUnknown);
   if (birth) parts.push(`Born: ${birth}`);
-  if (p.isDeceased) {
-    const death = formatFlexible(p.deathYear, p.deathMonth, p.deathDay, p.deathCirca, p.deathUnknown);
+  if (s.isDeceased) {
+    const death = formatFlexible(s.deathYear, s.deathMonth, s.deathDay, s.deathCirca, s.deathUnknown);
     parts.push(death ? `Died: ${death}` : 'Died: date unknown');
   }
   return parts.length > 0 ? parts.join(' · ') : null;
@@ -146,9 +163,9 @@ function formatConductDate(post: Post): string {
   return post.conductEraNote ? `${base} (${post.conductEraNote})` : base;
 }
 
-export default function PersonProfilePage() {
+export default function SubjectProfilePage() {
   const { id } = useParams<{ id: string }>();
-  const [data, setData] = useState<PersonRecord | null>(null);
+  const [data, setData] = useState<SubjectRecord | null>(null);
   const [status, setStatus] = useState<'loading' | 'notfound' | 'ready'>('loading');
 
   const [isAdmin, setIsAdmin] = useState(false);
@@ -177,7 +194,7 @@ export default function PersonProfilePage() {
   }, []);
 
   useEffect(() => {
-    fetch(`/api/persons/${id}`)
+    fetch(`/api/subjects/${id}`)
       .then((r) => {
         if (r.status === 404) {
           setStatus('notfound');
@@ -189,13 +206,13 @@ export default function PersonProfilePage() {
         if (d) {
           setData(d);
           setStatus('ready');
-          setAdminValueInput(d.person.adminScaleValue !== null ? String(d.person.adminScaleValue) : '');
+          setAdminValueInput(d.subject.adminScaleValue !== null ? String(d.subject.adminScaleValue) : '');
         }
       });
   }, [id]);
 
   useEffect(() => {
-    fetch(`/api/scale-suggestions?personId=${id}`)
+    fetch(`/api/scale-suggestions?subjectId=${id}`)
       .then((r) => r.json())
       .then((d) => setSuggestions(d.suggestions ?? []));
   }, [id, suggestionSuccess]);
@@ -206,8 +223,8 @@ export default function PersonProfilePage() {
     setSubmittingSuggestion(true);
 
     const numeric = Number(suggestionValue);
-    if (!Number.isInteger(numeric) || numeric < -100 || numeric > 100) {
-      setSuggestionError('Enter a whole number between -100 and 100.');
+    if (!Number.isInteger(numeric) || numeric < -1000 || numeric > 1000) {
+      setSuggestionError('Enter a whole number between -1000 and 1000.');
       setSubmittingSuggestion(false);
       return;
     }
@@ -215,7 +232,7 @@ export default function PersonProfilePage() {
     const res = await fetch('/api/scale-suggestions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ personId: id, value: numeric, reasoning: suggestionReasoning || null }),
+      body: JSON.stringify({ subjectId: id, value: numeric, reasoning: suggestionReasoning || null }),
     });
 
     setSubmittingSuggestion(false);
@@ -234,12 +251,12 @@ export default function PersonProfilePage() {
   async function handleSaveAdminValue() {
     setAdminValueError('');
     const numeric = Number(adminValueInput);
-    if (!Number.isInteger(numeric) || numeric < -100 || numeric > 100) {
-      setAdminValueError('Enter a whole number between -100 and 100.');
+    if (!Number.isInteger(numeric) || numeric < -1000 || numeric > 1000) {
+      setAdminValueError('Enter a whole number between -1000 and 1000.');
       return;
     }
     setSavingAdminValue(true);
-    const res = await fetch(`/api/persons/${id}/admin-scale`, {
+    const res = await fetch(`/api/subjects/${id}/admin-scale`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ value: numeric }),
@@ -251,7 +268,7 @@ export default function PersonProfilePage() {
       return;
     }
     const d = await res.json();
-    setData((prev) => prev ? { ...prev, person: { ...prev.person, adminScaleValue: d.person.adminScaleValue } } : prev);
+    setData((prev) => prev ? { ...prev, subject: { ...prev.subject, adminScaleValue: d.subject.adminScaleValue } } : prev);
   }
 
   if (status === 'loading') {
@@ -270,40 +287,49 @@ export default function PersonProfilePage() {
     );
   }
 
-  const { person, record, posts, notice } = data;
-  const tenure = formatTenure(person);
-  const birthDeath = formatBirthDeath(person);
+  const { subject, posts, notice } = data;
+  const tenure = formatTenure(subject);
+  const birthDeath = formatBirthDeath(subject);
 
   return (
     <main style={pageStyle}>
       <div style={{ maxWidth: 700, margin: '0 auto', fontFamily: 'Inter, system-ui, sans-serif' }}>
-        <p style={monoLabel}>PUBLIC RECORD</p>
+        <p style={monoLabel}>{SUBJECT_TYPE_LABELS[subject.subjectType] ?? subject.subjectType} RECORD</p>
 
         <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start', marginTop: 8 }}>
-          {person.photoUrl && (
+          {subject.photoUrl && (
             <img
-              src={person.photoUrl}
-              alt={person.displayName}
+              src={subject.photoUrl}
+              alt={subject.displayName}
               style={{ width: 96, height: 96, objectFit: 'cover', border: '1px solid #B4B2A9', flexShrink: 0 }}
             />
           )}
           <div>
             <h1 style={{ fontFamily: 'Georgia, "Iowan Old Style", serif', fontSize: 32, color: '#1C2024', margin: '0 0 4px' }}>
-              {person.displayName}
+              {subject.displayName}
             </h1>
-            <p style={{ color: '#5F5E5A', margin: '0 0 4px' }}>
-              {PERSONA_LABELS[person.personaCategory] ?? person.personaCategory} — {person.roleTitle}, {person.country}
-            </p>
-            <p style={{ ...monoLabel, marginTop: 0 }}>{tenure}</p>
+            {subject.subjectType === 'PERSON' && subject.personaCategory && (
+              <p style={{ color: '#5F5E5A', margin: '0 0 4px' }}>
+                {PERSONA_LABELS[subject.personaCategory] ?? subject.personaCategory}
+                {subject.roleTitle ? ` — ${subject.roleTitle}` : ''}
+              </p>
+            )}
+            {subject.description && (
+              <p style={{ color: '#5F5E5A', margin: '0 0 4px' }}>{subject.description}</p>
+            )}
+            {subject.associatedContext && (
+              <p style={{ color: '#5F5E5A', margin: '0 0 4px', fontSize: 13 }}>{subject.associatedContext}</p>
+            )}
+            {tenure && <p style={{ ...monoLabel, marginTop: 0 }}>{tenure}</p>}
             {birthDeath && <p style={{ ...monoLabel, marginTop: 0 }}>{birthDeath}</p>}
           </div>
         </div>
 
-        {person.verificationStatus === 'UNVERIFIED' && (
-          <span style={badgeStyle('#B8860B', '#FBF1DC')}>Persona status not yet confirmed</span>
+        {subject.verificationStatus === 'UNVERIFIED' && (
+          <span style={badgeStyle('#B8860B', '#FBF1DC')}>Status not yet confirmed</span>
         )}
-        {person.verificationStatus === 'ADMIN_CONFIRMED' && (
-          <span style={badgeStyle('#2F5D50', '#E7EEEA')}>Persona confirmed</span>
+        {subject.verificationStatus === 'ADMIN_CONFIRMED' && (
+          <span style={badgeStyle('#2F5D50', '#E7EEEA')}>Confirmed</span>
         )}
 
         {notice && (
@@ -312,26 +338,20 @@ export default function PersonProfilePage() {
           </div>
         )}
 
-        {record && (
-          <p style={{ fontSize: 13, color: '#5F5E5A', marginTop: 28, marginBottom: 24 }}>
-            Record for {person.roleTitle}, {tenure}.
-          </p>
-        )}
-
         {/* Scale: admin value + user suggestions */}
-        <div style={{ border: '1px solid #B4B2A9', background: '#fff', padding: '20px', marginBottom: 32 }}>
-          <p style={monoLabel}>CIVIC-MINDEDNESS SCALE (−100 CALLOUS · +100 CIVIC-MINDED)</p>
+        <div style={{ border: '1px solid #B4B2A9', background: '#fff', padding: '20px', marginTop: 28, marginBottom: 32 }}>
+          <p style={monoLabel}>ETHICS SCALE (−1000 CALLOUS · +1000 CIVIC-MINDED)</p>
 
           <div style={{ margin: '10px 0 16px' }}>
-  {person.adminScaleValue !== null ? (
-    <>
-      <BalanceScale value={person.adminScaleValue} />
-      <p style={{ fontSize: 13, color: '#5F5E5A', textAlign: 'center', marginTop: 4 }}>admin-assigned</p>
-    </>
-  ) : (
-    <p style={{ color: '#5F5E5A', fontSize: 14, margin: 0 }}>Not yet assigned an admin value.</p>
-  )}
-</div>
+            {subject.adminScaleValue !== null ? (
+              <>
+                <BalanceScale value={subject.adminScaleValue} />
+                <p style={{ fontSize: 13, color: '#5F5E5A', textAlign: 'center', marginTop: 4 }}>admin-assigned</p>
+              </>
+            ) : (
+              <p style={{ color: '#5F5E5A', fontSize: 14, margin: 0 }}>Not yet assigned an admin value.</p>
+            )}
+          </div>
 
           {isAdmin && (
             <div style={{ borderTop: '1px solid #E8E4DA', paddingTop: 14, marginBottom: 20 }}>
@@ -339,11 +359,11 @@ export default function PersonProfilePage() {
               <div style={{ display: 'flex', gap: 8 }}>
                 <input
                   type="number"
-                  min={-100}
-                  max={100}
+                  min={-1000}
+                  max={1000}
                   value={adminValueInput}
                   onChange={(e) => setAdminValueInput(e.target.value)}
-                  style={{ ...inputStyle, width: 100 }}
+                  style={{ ...inputStyle, width: 120 }}
                 />
                 <button
                   onClick={handleSaveAdminValue}
@@ -387,12 +407,12 @@ export default function PersonProfilePage() {
                 <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
                   <input
                     type="number"
-                    min={-100}
-                    max={100}
-                    placeholder="Your value (-100 to 100)"
+                    min={-1000}
+                    max={1000}
+                    placeholder="Your value (-1000 to 1000)"
                     value={suggestionValue}
                     onChange={(e) => setSuggestionValue(e.target.value)}
-                    style={{ ...inputStyle, width: 180 }}
+                    style={{ ...inputStyle, width: 200 }}
                     required
                   />
                 </div>
@@ -422,7 +442,7 @@ export default function PersonProfilePage() {
         </h2>
 
         {posts.length === 0 && (
-          <p style={{ color: '#5F5E5A' }}>No published records for this person yet.</p>
+          <p style={{ color: '#5F5E5A' }}>No published records for this subject yet.</p>
         )}
 
         {posts.map((post) => {
@@ -435,7 +455,7 @@ export default function PersonProfilePage() {
               </div>
               <p style={{ marginTop: 10, marginBottom: 10, lineHeight: 1.6, color: '#1C2024' }}>{post.narrative}</p>
               <p style={{ fontSize: 13, color: '#5F5E5A', marginBottom: 8 }}>
-                Public-capacity justification: {post.publicCapacityJustification}
+                Justification: {post.publicCapacityJustification}
               </p>
               {post.evidenceUrl && (
                 <a href={post.evidenceUrl} target="_blank" rel="noreferrer" style={{ fontSize: 13, color: '#1C2024' }}>
