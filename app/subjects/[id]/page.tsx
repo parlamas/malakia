@@ -5,6 +5,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import BalanceScale from '@/components/BalanceScale';
+import { computeDisplayId } from '@/lib/displayId';
 
 interface Behavior {
   label: string;
@@ -33,6 +34,7 @@ interface Post {
   publicCapacityJustification: string;
   behavior: Behavior;
   author: { username: string };
+  createdAt: string;
   contests: Contest[];
 }
 
@@ -83,6 +85,14 @@ interface ScaleSuggestion {
   id: string;
   value: number;
   reasoning: string | null;
+  createdAt: string;
+  user: { username: string };
+}
+
+interface ReactionItem {
+  id: string;
+  value: number | null;
+  body: string;
   createdAt: string;
   user: { username: string };
 }
@@ -186,6 +196,11 @@ export default function SubjectProfilePage() {
   const [verifyStatus, setVerifyStatus] = useState<'idle' | 'saving'>('idle');
   const [verifyError, setVerifyError] = useState('');
 
+  const [reactionsBySuggestion, setReactionsBySuggestion] = useState<Record<string, ReactionItem[]>>({});
+  const [reactionDrafts, setReactionDrafts] = useState<Record<string, { value: string; body: string }>>({});
+  const [reactionSubmitting, setReactionSubmitting] = useState<Record<string, boolean>>({});
+  const [reactionErrors, setReactionErrors] = useState<Record<string, string>>({});
+
   useEffect(() => {
     fetch('/api/auth/me', { credentials: 'include' })
       .then((r) => r.json())
@@ -219,6 +234,46 @@ export default function SubjectProfilePage() {
       .then((r) => r.json())
       .then((d) => setSuggestions(d.suggestions ?? []));
   }, [id, suggestionSuccess]);
+
+  useEffect(() => {
+    suggestions.forEach((s) => {
+      fetch(`/api/reactions?scaleSuggestionId=${s.id}`)
+        .then((r) => r.json())
+        .then((d) => setReactionsBySuggestion((prev) => ({ ...prev, [s.id]: d.reactions ?? [] })));
+    });
+  }, [suggestions]);
+
+  async function handleReactToSuggestion(suggestionId: string) {
+    const draft = reactionDrafts[suggestionId] || { value: '', body: '' };
+    if (!draft.body) {
+      setReactionErrors((prev) => ({ ...prev, [suggestionId]: 'Write a reaction first.' }));
+      return;
+    }
+    setReactionSubmitting((prev) => ({ ...prev, [suggestionId]: true }));
+    setReactionErrors((prev) => ({ ...prev, [suggestionId]: '' }));
+
+    const res = await fetch('/api/reactions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        scaleSuggestionId: suggestionId,
+        value: draft.value ? Number(draft.value) : null,
+        reactionBody: draft.body,
+      }),
+    });
+
+    setReactionSubmitting((prev) => ({ ...prev, [suggestionId]: false }));
+
+    if (!res.ok) {
+      const d = await res.json();
+      setReactionErrors((prev) => ({ ...prev, [suggestionId]: d.error ?? 'Something went wrong.' }));
+      return;
+    }
+
+    setReactionDrafts((prev) => ({ ...prev, [suggestionId]: { value: '', body: '' } }));
+    const refreshed = await fetch(`/api/reactions?scaleSuggestionId=${suggestionId}`).then((r) => r.json());
+    setReactionsBySuggestion((prev) => ({ ...prev, [suggestionId]: refreshed.reactions ?? [] }));
+  }
 
   async function handleSubmitSuggestion(e: React.FormEvent) {
     e.preventDefault();
@@ -352,20 +407,20 @@ export default function SubjectProfilePage() {
         </div>
 
         {subject.verificationStatus === 'UNVERIFIED' && (
-  <span style={badgeStyle('#B8860B', '#FBF1DC')}>Status not yet confirmed</span>
-)}
-{subject.verificationStatus === 'ADMIN_CONFIRMED' && (
-  <span style={confirmedBadgeStyle(subject.adminScaleValue)}>
-    {subject.adminScaleValue === null
-      ? 'CONFIRMED'
-      : subject.adminScaleValue >= 0
-        ? 'CONFIRMED — CIVIC-MINDED'
-        : 'CONFIRMED — CALLOUS'}
-  </span>
-)}
-{subject.verificationStatus === 'DISPUTED' && (
-  <span style={badgeStyle('#7A2E2E', '#F3E8E6')}>Disputed</span>
-)}
+          <span style={badgeStyle('#B8860B', '#FBF1DC')}>Status not yet confirmed</span>
+        )}
+        {subject.verificationStatus === 'ADMIN_CONFIRMED' && (
+          <span style={confirmedBadgeStyle(subject.adminScaleValue)}>
+            {subject.adminScaleValue === null
+              ? 'CONFIRMED'
+              : subject.adminScaleValue >= 0
+                ? 'CONFIRMED — CIVIC-MINDED'
+                : 'CONFIRMED — CALLOUS'}
+          </span>
+        )}
+        {subject.verificationStatus === 'DISPUTED' && (
+          <span style={badgeStyle('#7A2E2E', '#F3E8E6')}>Disputed</span>
+        )}
 
         {isAdmin && (
           <div style={{ marginTop: 10, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -447,21 +502,71 @@ export default function SubjectProfilePage() {
               <p style={{ color: '#5F5E5A', fontSize: 13, marginBottom: 16 }}>No suggestions yet.</p>
             )}
 
-            {suggestions.map((s) => (
-              <div key={s.id} style={{ marginBottom: 12, paddingBottom: 12, borderBottom: '1px solid #E8E4DA' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                  <span style={{ fontFamily: 'Georgia, serif', fontSize: 16, color: s.value >= 0 ? '#2F5D50' : '#7A2E2E' }}>
-                    {s.value > 0 ? '+' : ''}{s.value}
-                  </span>
-                  <span style={{ fontSize: 12, color: '#5F5E5A' }}>
+            {suggestions.map((s) => {
+              const suggestionDisplayId = computeDisplayId('S', s.user.username, s.createdAt);
+              const draft = reactionDrafts[s.id] || { value: '', body: '' };
+              const reactions = reactionsBySuggestion[s.id] || [];
+
+              return (
+                <div key={s.id} style={{ marginBottom: 20, paddingBottom: 16, borderBottom: '1px solid #E8E4DA' }}>
+                  <p style={{ fontWeight: 'bold', color: '#1D4ED8', fontSize: 13, marginBottom: 4 }}>
+                    {suggestionDisplayId}
+                  </p>
+                  <BalanceScale value={s.value} width={180} />
+                  <p style={{ fontSize: 12, color: '#5F5E5A', marginTop: 4 }}>
                     {s.user.username} · {new Date(s.createdAt).toLocaleDateString('en-GB', { year: 'numeric', month: 'short', day: 'numeric' })}
-                  </span>
+                  </p>
+                  {s.reasoning && (
+                    <p style={{ fontSize: 13, color: '#1C2024', marginTop: 4, marginBottom: 8 }}>{s.reasoning}</p>
+                  )}
+
+                  {reactions.map((r) => (
+                    <div key={r.id} style={{ marginLeft: 20, marginTop: 10, paddingLeft: 12, borderLeft: '2px solid #B4B2A9' }}>
+                      <p style={{ fontWeight: 'bold', color: '#1D4ED8', fontSize: 13, marginBottom: 4 }}>
+                        {r.user.username} reacts to {suggestionDisplayId}
+                      </p>
+                      {r.value !== null && r.value !== undefined && (
+                        <BalanceScale value={r.value} width={140} />
+                      )}
+                      <p style={{ fontSize: 13, color: '#1C2024', marginTop: 4 }}>{r.body}</p>
+                      <p style={{ fontSize: 11, color: '#5F5E5A' }}>
+                        {computeDisplayId('R', r.user.username, r.createdAt)}
+                      </p>
+                    </div>
+                  ))}
+
+                  {isAuthenticated && (
+                    <div style={{ marginLeft: 20, marginTop: 10 }}>
+                      <div style={{ display: 'flex', gap: 8, marginBottom: 6 }}>
+                        <input
+                          type="number"
+                          min={-1000}
+                          max={1000}
+                          placeholder="Value (optional)"
+                          value={draft.value}
+                          onChange={(e) => setReactionDrafts((prev) => ({ ...prev, [s.id]: { ...draft, value: e.target.value } }))}
+                          style={{ ...inputStyle, width: 140 }}
+                        />
+                      </div>
+                      <textarea
+                        placeholder="Your reaction"
+                        value={draft.body}
+                        onChange={(e) => setReactionDrafts((prev) => ({ ...prev, [s.id]: { ...draft, body: e.target.value } }))}
+                        style={{ ...inputStyle, height: 50, resize: 'vertical', marginBottom: 6 }}
+                      />
+                      {reactionErrors[s.id] && <p style={{ color: '#7A2E2E', fontSize: 12, marginBottom: 6 }}>{reactionErrors[s.id]}</p>}
+                      <button
+                        onClick={() => handleReactToSuggestion(s.id)}
+                        disabled={reactionSubmitting[s.id]}
+                        style={{ padding: '6px 14px', background: '#1C2024', color: '#fff', border: 'none', fontSize: 12, cursor: 'pointer' }}
+                      >
+                        {reactionSubmitting[s.id] ? 'Submitting…' : 'React'}
+                      </button>
+                    </div>
+                  )}
                 </div>
-                {s.reasoning && (
-                  <p style={{ fontSize: 13, color: '#1C2024', marginTop: 4, marginBottom: 0 }}>{s.reasoning}</p>
-                )}
-              </div>
-            ))}
+              );
+            })}
 
             {isAuthenticated ? (
               <form onSubmit={handleSubmitSuggestion} style={{ marginTop: 16 }}>
@@ -508,8 +613,10 @@ export default function SubjectProfilePage() {
 
         {posts.map((post) => {
           const color = post.axis === 'CALLOUS' ? '#7A2E2E' : '#2F5D50';
+          const postDisplayId = computeDisplayId('P', post.author.username, post.createdAt);
           return (
             <div key={post.id} style={{ border: '1px solid #B4B2A9', background: '#fff', padding: '16px 20px', marginBottom: 16 }}>
+              <p style={{ fontWeight: 'bold', color: '#1D4ED8', fontSize: 12, marginBottom: 6 }}>{postDisplayId}</p>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
                 <span style={{ color, fontFamily: 'Georgia, serif', fontSize: 15 }}>{post.behavior.label}</span>
                 <span style={monoLabel}>{formatConductDate(post)}</span>
@@ -582,7 +689,7 @@ function badgeStyle(color: string, bg: string): React.CSSProperties {
   };
 }
 
-  function confirmedBadgeStyle(adminScaleValue: number | null): React.CSSProperties {
+function confirmedBadgeStyle(adminScaleValue: number | null): React.CSSProperties {
   const isCivic = adminScaleValue !== null && adminScaleValue >= 0;
   return {
     display: 'inline-block',

@@ -308,8 +308,8 @@ model Reaction {
   userId            String
   user              User              @relation("ReactionAuthor", fields: [userId], references: [id])
 
-  postId            String            // always required — every reaction is anchored to a specific post
-  post              Post              @relation(fields: [postId], references: [id])
+  postId            String?           // optional — a reaction to a suggestion has no single post to anchor to
+  post              Post?             @relation(fields: [postId], references: [id])
 
   scaleSuggestionId String?
   scaleSuggestion   ScaleSuggestion?  @relation(fields: [scaleSuggestionId], references: [id])
@@ -317,11 +317,13 @@ model Reaction {
   contestId         String?
   contest           Contest?          @relation(fields: [contestId], references: [id])
 
+  value             Int?              // -1000 to +1000, optional numeric reaction
   body              String            // free text — users write what they want
 
   createdAt         DateTime          @default(now())
 
   @@index([postId])
+  @@index([scaleSuggestionId])
 }
 
 model Report {
