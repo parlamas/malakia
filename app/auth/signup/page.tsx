@@ -4,10 +4,10 @@
 
 export const dynamic = "force-dynamic";
 
-import React from "react"; // Add this import
+import React from "react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import NavBar from "../../../components/NavBar";
+import Link from "next/link";
 
 export default function SignUp() {
   const router = useRouter();
@@ -27,7 +27,6 @@ export default function SignUp() {
     setSuccessMessage("");
     setLoading(true);
 
-    // Basic validation
     if (password !== confirmPassword) {
       setError("Passwords do not match");
       setLoading(false);
@@ -44,13 +43,13 @@ export default function SignUp() {
       const response = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          firstName, 
-          lastName, 
-          username, 
-          email, 
+        body: JSON.stringify({
+          firstName,
+          lastName,
+          username,
+          email,
           password,
-          confirmPassword 
+          confirmPassword
         }),
       });
 
@@ -58,9 +57,7 @@ export default function SignUp() {
 
       if (response.ok) {
         if (data.requiresVerification) {
-          // Show verification message
           setSuccessMessage(data.message);
-          // Clear form
           setFirstName("");
           setLastName("");
           setUsername("");
@@ -68,7 +65,6 @@ export default function SignUp() {
           setPassword("");
           setConfirmPassword("");
         } else {
-          // Old flow (shouldn't happen with email verification)
           alert("Account created successfully! Please sign in.");
           router.push("/auth/signin");
         }
@@ -83,141 +79,178 @@ export default function SignUp() {
   };
 
   return (
-    <div className="min-h-screen bg-white text-black">
-      <NavBar />
-      <div className="flex items-center justify-center py-12">
-        <form onSubmit={handleSubmit} className="space-y-4 w-full max-w-md p-6">
-          <div>
-            <h1 className="text-2xl font-bold">Create Account</h1>
+    <main style={{ background: '#EDEAE2', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '3rem 1.5rem' }}>
+      <form onSubmit={handleSubmit} style={{ width: '100%', maxWidth: 460, fontFamily: 'Inter, system-ui, sans-serif' }}>
+        <p style={{ fontFamily: 'ui-monospace, "IBM Plex Mono", monospace', fontSize: 13, color: '#5F5E5A', letterSpacing: '0.03em', marginBottom: 6 }}>
+          MALAKIA
+        </p>
+        <h1 style={{ fontFamily: 'Georgia, "Iowan Old Style", serif', fontSize: 28, color: '#1C2024', margin: '0 0 24px' }}>
+          Create Account
+        </h1>
+
+        {error && (
+          <div style={{
+            background: '#F3E8E6',
+            border: '1px solid #7A2E2E',
+            color: '#7A2E2E',
+            padding: '12px 14px',
+            marginBottom: 20,
+            fontSize: 14,
+          }}>
+            {error}
           </div>
-          
-          {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-              {error}
+        )}
+
+        {successMessage && (
+          <div style={{
+            background: '#E7EEEA',
+            border: '1px solid #2F5D50',
+            color: '#2F5D50',
+            padding: '12px 14px',
+            marginBottom: 20,
+            fontSize: 14,
+          }}>
+            {successMessage}
+            <div style={{ marginTop: 10 }}>
+              <Link href="/auth/signin" style={{ color: '#1C2024', fontWeight: 600, fontSize: 13, textDecoration: 'underline' }}>
+                Go to Sign In →
+              </Link>
             </div>
-          )}
+          </div>
+        )}
 
-          {successMessage && (
-            <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded">
-              {successMessage}
-              <div className="mt-2">
-                <a 
-                  href="/auth/signin" 
-                  className="text-blue-500 hover:underline text-sm"
-                >
-                  Go to Sign In →
-                </a>
-              </div>
-            </div>
-          )}
-
-          {!successMessage && (
-            <>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium mb-2">First Name</label>
-                  <input
-                    type="text"
-                    placeholder="John"
-                    value={firstName}
-                    onChange={(e) => setFirstName(e.target.value)}
-                    className="w-full p-3 border border-gray-300 rounded bg-white text-black"
-                    required
-                    disabled={loading}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2">Last Name</label>
-                  <input
-                    type="text"
-                    placeholder="Doe"
-                    value={lastName}
-                    onChange={(e) => setLastName(e.target.value)}
-                    className="w-full p-3 border border-gray-300 rounded bg-white text-black"
-                    required
-                    disabled={loading}
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-2">Username</label>
+        {!successMessage && (
+          <>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <label style={labelStyle}>
+                First Name
                 <input
                   type="text"
-                  placeholder="johndoe"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  className="w-full p-3 border border-gray-300 rounded bg-white text-black"
+                  placeholder="John"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  style={inputStyle}
                   required
                   disabled={loading}
                 />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-2">Email</label>
+              </label>
+              <label style={labelStyle}>
+                Last Name
                 <input
-                  type="email"
-                  placeholder="you@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full p-3 border border-gray-300 rounded bg-white text-black"
+                  type="text"
+                  placeholder="Doe"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  style={inputStyle}
                   required
                   disabled={loading}
                 />
-              </div>
+              </label>
+            </div>
 
-              <div>
-                <label className="block text-sm font-medium mb-2">Password</label>
-                <input
-                  type="password"
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full p-3 border border-gray-300 rounded bg-white text-black"
-                  required
-                  minLength={6}
-                  disabled={loading}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-2">Confirm Password</label>
-                <input
-                  type="password"
-                  placeholder="••••••••"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="w-full p-3 border border-gray-300 rounded bg-white text-black"
-                  required
-                  minLength={6}
-                  disabled={loading}
-                />
-              </div>
-
-              <button
-                type="submit"
+            <label style={{ ...labelStyle, marginTop: 16 }}>
+              Username
+              <input
+                type="text"
+                placeholder="johndoe"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                style={inputStyle}
+                required
                 disabled={loading}
-                className={`w-full p-3 rounded font-medium mt-4 ${
-                  loading
-                    ? "bg-gray-400 cursor-not-allowed"
-                    : "bg-green-500 hover:bg-green-600 text-white"
-                }`}
-              >
-                {loading ? "Creating Account..." : "Sign Up"}
-              </button>
-            </>
-          )}
+              />
+            </label>
 
-          <div className="text-center pt-4 border-t border-gray-200">
-            <p className="text-gray-600">
-              Already have an account?{" "}
-              <a href="/auth/signin" className="text-blue-500 hover:underline font-medium">
-                Sign in
-              </a>
-            </p>
-          </div>
-        </form>
-      </div>
-    </div>
+            <label style={{ ...labelStyle, marginTop: 16 }}>
+              Email
+              <input
+                type="email"
+                placeholder="you@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                style={inputStyle}
+                required
+                disabled={loading}
+              />
+            </label>
+
+            <label style={{ ...labelStyle, marginTop: 16 }}>
+              Password
+              <input
+                type="password"
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                style={inputStyle}
+                required
+                minLength={6}
+                disabled={loading}
+              />
+            </label>
+
+            <label style={{ ...labelStyle, marginTop: 16 }}>
+              Confirm Password
+              <input
+                type="password"
+                placeholder="••••••••"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                style={inputStyle}
+                required
+                minLength={6}
+                disabled={loading}
+              />
+            </label>
+
+            <button
+              type="submit"
+              disabled={loading}
+              style={{
+                width: '100%',
+                padding: '14px 0',
+                marginTop: 24,
+                background: loading ? '#B4B2A9' : '#1C2024',
+                color: '#fff',
+                border: 'none',
+                fontFamily: 'Georgia, serif',
+                fontSize: 16,
+                cursor: loading ? 'not-allowed' : 'pointer',
+              }}
+            >
+              {loading ? 'Creating Account…' : 'Sign Up'}
+            </button>
+          </>
+        )}
+
+        <div style={{ textAlign: 'center', marginTop: 28, paddingTop: 20, borderTop: '1px solid #D8D4C8' }}>
+          <p style={{ color: '#5F5E5A', fontSize: 14 }}>
+            Already have an account?{" "}
+            <Link href="/auth/signin" style={{ color: '#1C2024', fontWeight: 600, textDecoration: 'underline' }}>
+              Sign in
+            </Link>
+          </p>
+        </div>
+      </form>
+    </main>
   );
 }
+
+const labelStyle: React.CSSProperties = {
+  display: 'block',
+  fontSize: 12,
+  color: '#5F5E5A',
+  fontFamily: 'ui-monospace, "IBM Plex Mono", monospace',
+  letterSpacing: '0.03em',
+};
+
+const inputStyle: React.CSSProperties = {
+  width: '100%',
+  padding: '12px 14px',
+  marginTop: 6,
+  border: '1px solid #B4B2A9',
+  background: '#fff',
+  fontFamily: 'Inter, system-ui, sans-serif',
+  fontSize: 15,
+  color: '#1C2024',
+  boxSizing: 'border-box',
+};
