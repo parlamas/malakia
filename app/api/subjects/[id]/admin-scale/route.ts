@@ -1,4 +1,4 @@
-// app/api/persons/[id]/admin-scale/route.ts
+// app/api/subjects/[id]/admin-scale/route.ts
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
@@ -25,17 +25,17 @@ export async function PATCH(
   }
 
   const numericValue = Number(value);
-  if (!Number.isInteger(numericValue) || numericValue < -100 || numericValue > 100) {
-    return NextResponse.json({ error: 'value must be an integer between -100 and 100' }, { status: 400 });
+  if (!Number.isInteger(numericValue) || numericValue < -1000 || numericValue > 1000) {
+    return NextResponse.json({ error: 'value must be an integer between -1000 and 1000' }, { status: 400 });
   }
 
-  const existingPerson = await prisma.person.findUnique({ where: { id } });
-  if (!existingPerson) {
-    return NextResponse.json({ error: 'Person not found' }, { status: 404 });
+  const existingSubject = await prisma.subject.findUnique({ where: { id } });
+  if (!existingSubject) {
+    return NextResponse.json({ error: 'Subject not found' }, { status: 404 });
   }
 
-  const [person] = await prisma.$transaction([
-    prisma.person.update({
+  const [subject] = await prisma.$transaction([
+    prisma.subject.update({
       where: { id },
       data: { adminScaleValue: numericValue },
     }),
@@ -43,12 +43,12 @@ export async function PATCH(
       data: {
         actorUserId: user.id,
         action: 'admin_scale_value_set',
-        targetType: 'Person',
+        targetType: 'Subject',
         targetId: id,
         reason: `value=${numericValue}`,
       },
     }),
   ]);
 
-  return NextResponse.json({ person });
+  return NextResponse.json({ subject });
 }

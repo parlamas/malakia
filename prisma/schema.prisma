@@ -96,7 +96,18 @@ model PasswordAuditLog {
   @@index([email])
 }
 
-// ---------------- Malakia accountability system ----------------
+// ---------------- Malakia political ethics barometer ----------------
+
+enum SubjectType {
+  PERSON
+  INSTITUTION
+  ORGANIZATION
+  BUSINESS
+  NATION
+  PRACTICE
+  TRADITION
+  IDEOLOGY
+}
 
 enum PersonaCategory {
   ELECTED_OFFICIAL
@@ -137,13 +148,17 @@ enum ReportStatus {
   DISMISSED
 }
 
-model Person {
+model Subject {
   id                  String              @id @default(cuid())
+  subjectType         SubjectType
+
   displayName         String
-  disambiguators      String?
-  country             String
-  personaCategory     PersonaCategory
-  roleTitle           String
+  description         String?             // general description — used by all non-person types
+  disambiguators      String?             // city, org, title — for name collisions
+
+  // PERSON-only fields
+  personaCategory     PersonaCategory?
+  roleTitle           String?
 
   roleStartYear       Int?
   roleStartMonth      Int?
@@ -156,7 +171,7 @@ model Person {
   roleEndDay          Int?
   roleEndCirca        Boolean             @default(false)
   roleEndUnknown      Boolean             @default(false)
-  stillServing        Boolean             @default(false) // explicit, rather than inferring from a null end date
+  stillServing        Boolean             @default(false) // also used by NATION/INSTITUTION/ORG/BUSINESS as "still exists/active"
 
   approximatePeriod   String?             // free text fallback, e.g. "5th century BCE Athens"
 
@@ -173,18 +188,23 @@ model Person {
   deathCirca          Boolean             @default(false)
   deathUnknown        Boolean             @default(false)
 
+  // Optional free-text context — never a required/structured "country" field,
+  // since ethics is being judged, not nationality
+  associatedContext   String?             // e.g. jurisdiction for a business, origin for a practice/tradition
+
   roleEvidenceUrl     String?
   photoUrl            String?
   verificationStatus  VerificationStatus  @default(UNVERIFIED)
 
-  adminScaleValue     Int?                // -100 to +100, callous to civic-minded, set by the admin; null = not yet judged
+  adminScaleValue     Int?                // -1000 to +1000, callous to civic-minded, set by the admin; null = not yet judged
 
   posts               Post[]
   scaleSuggestions    ScaleSuggestion[]
   createdAt           DateTime            @default(now())
   updatedAt           DateTime            @updatedAt
 
-  @@index([displayName, country])
+  @@index([displayName])
+  @@index([subjectType])
 }
 
 model Behavior {
@@ -202,8 +222,8 @@ model Post {
   authorUserId                  String
   author                        User       @relation("PostAuthor", fields: [authorUserId], references: [id])
 
-  subjectPersonId               String
-  subject                       Person     @relation(fields: [subjectPersonId], references: [id])
+  subjectId                     String
+  subject                       Subject    @relation(fields: [subjectId], references: [id])
 
   axis                          Axis
   behaviorId                    String
@@ -232,7 +252,7 @@ model Post {
   reports                       Report[]
   createdAt                     DateTime   @default(now())
 
-  @@index([subjectPersonId, axis])
+  @@index([subjectId, axis])
 }
 
 model Contest {
@@ -257,7 +277,7 @@ model AuditLogEntry {
   actor       User     @relation("AuditActor", fields: [actorUserId], references: [id])
 
   action      String   // "post_approved" | "post_rejected_language" | "post_removed" | ...
-  targetType  String   // "Post" | "Person" | "Contest"
+  targetType  String   // "Post" | "Subject" | "Contest"
   targetId    String
   reason      String?
   createdAt   DateTime @default(now())
@@ -266,13 +286,13 @@ model AuditLogEntry {
 model ScaleSuggestion {
   id          String   @id @default(cuid())
 
-  personId    String
-  person      Person   @relation(fields: [personId], references: [id])
+  subjectId   String
+  subject     Subject  @relation(fields: [subjectId], references: [id])
 
   userId      String
   user        User     @relation("ScaleSuggestionAuthor", fields: [userId], references: [id])
 
-  value       Int      // -100 (callous) to +100 (civic-minded)
+  value       Int      // -1000 (callous) to +1000 (civic-minded)
   reasoning   String?  // optional justification, personal responsibility
 
   createdAt   DateTime @default(now())
@@ -280,7 +300,7 @@ model ScaleSuggestion {
   reactions   Reaction[]
   reports     Report[]
 
-  @@index([personId])
+  @@index([subjectId])
 }
 
 model Reaction {
@@ -291,10 +311,10 @@ model Reaction {
   postId            String            // always required — every reaction is anchored to a specific post
   post              Post              @relation(fields: [postId], references: [id])
 
-  scaleSuggestionId String?           // optional: this reaction is specifically about a scale suggestion tied to this post's subject
+  scaleSuggestionId String?
   scaleSuggestion   ScaleSuggestion?  @relation(fields: [scaleSuggestionId], references: [id])
 
-  contestId         String?           // optional: this reaction is specifically about a contest on this post
+  contestId         String?
   contest           Contest?          @relation(fields: [contestId], references: [id])
 
   body              String            // free text — users write what they want

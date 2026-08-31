@@ -1,4 +1,4 @@
-// app/api/persons/[id]/verify/route.ts
+// app/api/subjects/[id]/verify/route.ts
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
@@ -29,26 +29,26 @@ export async function PATCH(
     return NextResponse.json({ error: 'reason required when marking as DISPUTED' }, { status: 400 });
   }
 
-  const existingPerson = await prisma.person.findUnique({ where: { id } });
-  if (!existingPerson) {
-    return NextResponse.json({ error: 'Person not found' }, { status: 404 });
+  const existingSubject = await prisma.subject.findUnique({ where: { id } });
+  if (!existingSubject) {
+    return NextResponse.json({ error: 'Subject not found' }, { status: 404 });
   }
 
-  const [person] = await prisma.$transaction([
-    prisma.person.update({
+  const [subject] = await prisma.$transaction([
+    prisma.subject.update({
       where: { id },
       data: { verificationStatus },
     }),
     prisma.auditLogEntry.create({
       data: {
         actorUserId: user.id,
-        action: `person_marked_${verificationStatus.toLowerCase()}`,
-        targetType: 'Person',
+        action: `subject_marked_${verificationStatus.toLowerCase()}`,
+        targetType: 'Subject',
         targetId: id,
         reason: reason ?? null,
       },
     }),
   ]);
 
-  return NextResponse.json({ person });
+  return NextResponse.json({ subject });
 }
