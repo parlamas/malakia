@@ -9,6 +9,7 @@ export default function NavBar() {
   const [user, setUser] = useState<{
     authenticated: boolean
     username?: string
+    isAdmin?: boolean
   } | null>(null)
 
   const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -57,7 +58,20 @@ style={{ marginLeft: '40px' }}
         {/* Sign in / user — hidden on mobile, moves into burger menu instead */}
 <div className="hidden sm:flex items-center flex-shrink-0" style={{ marginRight: '20px' }}>
   {user === null ? null : user.authenticated ? (
-    <div className="flex items-center gap-4">
+    <div className="flex items-center gap-3">
+      {user.isAdmin && (
+        <span style={{
+          fontFamily: 'ui-monospace, "IBM Plex Mono", monospace',
+          fontSize: 11,
+          letterSpacing: '0.05em',
+          color: '#fff',
+          background: '#7A2E2E',
+          padding: '2px 8px',
+          borderRadius: 3,
+        }}>
+          ADMIN
+        </span>
+      )}
       <span className="text-black font-medium">
         {user.username}
       </span>
@@ -93,10 +107,33 @@ style={{ marginLeft: '40px' }}
               Classic malakia quotes
             </Link>
 
+            {user?.isAdmin && (
+              <Link
+                href="/admin/moderate"
+                className="text-gray-700 hover:text-blue-600 transition-colors text-sm"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Moderation queue
+              </Link>
+            )}
+
             {/* Sign in / user — lives here on mobile since it's hidden from the bar itself */}
             <div className="sm:hidden pt-2 border-t border-gray-200">
               {user === null ? null : user.authenticated ? (
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-3">
+                  {user.isAdmin && (
+                    <span style={{
+                      fontFamily: 'ui-monospace, "IBM Plex Mono", monospace',
+                      fontSize: 11,
+                      letterSpacing: '0.05em',
+                      color: '#fff',
+                      background: '#7A2E2E',
+                      padding: '2px 8px',
+                      borderRadius: 3,
+                    }}>
+                      ADMIN
+                    </span>
+                  )}
                   <span className="text-black font-medium text-sm">
                     {user.username}
                   </span>

@@ -24,6 +24,7 @@ export async function GET() {
       select: {
         tokenVersion: true,
         username: true,
+        isAdmin: true,
       },
     })
 
@@ -34,6 +35,7 @@ export async function GET() {
     return NextResponse.json({
       authenticated: true,
       username: user.username,
+      isAdmin: user.isAdmin,
     })
   } catch {
     return NextResponse.json({ authenticated: false })
