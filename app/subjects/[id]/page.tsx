@@ -494,9 +494,12 @@ export default function SubjectProfilePage() {
           )}
 
           <div style={{ borderTop: '1px solid #E8E4DA', paddingTop: 16 }}>
-            <p style={{ fontFamily: 'Georgia, serif', fontSize: 15, color: '#1C2024', marginBottom: 10 }}>
-              User-suggested values
-            </p>
+            <p style={{ fontFamily: 'Georgia, serif', fontSize: 15, color: '#1C2024', marginBottom: 4 }}>
+  User-suggested values
+</p>
+<p style={{ fontSize: 11, color: '#5F5E5A', marginBottom: 10 }}>
+  All record IDs use UTC for date and time.
+</p>
 
             {suggestions.length === 0 && (
               <p style={{ color: '#5F5E5A', fontSize: 13, marginBottom: 16 }}>No suggestions yet.</p>
