@@ -67,6 +67,7 @@ interface PersonData {
   deathUnknown: boolean;
   photoUrl: string | null;
   verificationStatus: 'UNVERIFIED' | 'ADMIN_CONFIRMED' | 'DISPUTED';
+  adminScaleValue: number | null;
 }
 
 interface PersonRecord {
@@ -74,6 +75,14 @@ interface PersonRecord {
   record: { callousCount: number; civicCount: number; netScore: number } | null;
   posts: Post[];
   notice?: string;
+}
+
+interface ScaleSuggestion {
+  id: string;
+  value: number;
+  reasoning: string | null;
+  createdAt: string;
+  user: { username: string };
 }
 
 const PERSONA_LABELS: Record<string, string> = {
@@ -141,6 +150,31 @@ export default function PersonProfilePage() {
   const [data, setData] = useState<PersonRecord | null>(null);
   const [status, setStatus] = useState<'loading' | 'notfound' | 'ready'>('loading');
 
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  const [suggestions, setSuggestions] = useState<ScaleSuggestion[]>([]);
+
+  const [suggestionValue, setSuggestionValue] = useState('');
+  const [suggestionReasoning, setSuggestionReasoning] = useState('');
+  const [submittingSuggestion, setSubmittingSuggestion] = useState(false);
+  const [suggestionError, setSuggestionError] = useState('');
+  const [suggestionSuccess, setSuggestionSuccess] = useState(false);
+
+  const [adminValueInput, setAdminValueInput] = useState('');
+  const [savingAdminValue, setSavingAdminValue] = useState(false);
+  const [adminValueError, setAdminValueError] = useState('');
+
+  useEffect(() => {
+    fetch('/api/auth/me', { credentials: 'include' })
+      .then((r) => r.json())
+      .then((d) => {
+        setIsAuthenticated(!!d.authenticated);
+        setIsAdmin(!!d.isAdmin);
+      })
+      .catch(() => {});
+  }, []);
+
   useEffect(() => {
     fetch(`/api/persons/${id}`)
       .then((r) => {
@@ -154,9 +188,70 @@ export default function PersonProfilePage() {
         if (d) {
           setData(d);
           setStatus('ready');
+          setAdminValueInput(d.person.adminScaleValue !== null ? String(d.person.adminScaleValue) : '');
         }
       });
   }, [id]);
+
+  useEffect(() => {
+    fetch(`/api/scale-suggestions?personId=${id}`)
+      .then((r) => r.json())
+      .then((d) => setSuggestions(d.suggestions ?? []));
+  }, [id, suggestionSuccess]);
+
+  async function handleSubmitSuggestion(e: React.FormEvent) {
+    e.preventDefault();
+    setSuggestionError('');
+    setSubmittingSuggestion(true);
+
+    const numeric = Number(suggestionValue);
+    if (!Number.isInteger(numeric) || numeric < -100 || numeric > 100) {
+      setSuggestionError('Enter a whole number between -100 and 100.');
+      setSubmittingSuggestion(false);
+      return;
+    }
+
+    const res = await fetch('/api/scale-suggestions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ personId: id, value: numeric, reasoning: suggestionReasoning || null }),
+    });
+
+    setSubmittingSuggestion(false);
+
+    if (!res.ok) {
+      const d = await res.json();
+      setSuggestionError(d.error ?? 'Something went wrong.');
+      return;
+    }
+
+    setSuggestionValue('');
+    setSuggestionReasoning('');
+    setSuggestionSuccess((s) => !s); // toggles to re-trigger the suggestions fetch
+  }
+
+  async function handleSaveAdminValue() {
+    setAdminValueError('');
+    const numeric = Number(adminValueInput);
+    if (!Number.isInteger(numeric) || numeric < -100 || numeric > 100) {
+      setAdminValueError('Enter a whole number between -100 and 100.');
+      return;
+    }
+    setSavingAdminValue(true);
+    const res = await fetch(`/api/persons/${id}/admin-scale`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ value: numeric }),
+    });
+    setSavingAdminValue(false);
+    if (!res.ok) {
+      const d = await res.json();
+      setAdminValueError(d.error ?? 'Something went wrong.');
+      return;
+    }
+    const d = await res.json();
+    setData((prev) => prev ? { ...prev, person: { ...prev.person, adminScaleValue: d.person.adminScaleValue } } : prev);
+  }
 
   if (status === 'loading') {
     return (
@@ -217,54 +312,124 @@ export default function PersonProfilePage() {
         )}
 
         {record && (
-          <>
-            <div style={{ display: 'flex', gap: 16, marginTop: 28, marginBottom: 12 }}>
-              <div style={{ ...tallyCard, borderColor: '#7A2E2E' }}>
-                <p style={{ ...monoLabel, marginTop: 0 }}>CALLOUS</p>
-                <p style={{ fontFamily: 'Georgia, serif', fontSize: 28, color: '#7A2E2E', margin: 0 }}>{record.callousCount}</p>
-              </div>
-              <div style={{ ...tallyCard, borderColor: '#2F5D50' }}>
-                <p style={{ ...monoLabel, marginTop: 0 }}>CIVIC</p>
-                <p style={{ fontFamily: 'Georgia, serif', fontSize: 28, color: '#2F5D50', margin: 0 }}>{record.civicCount}</p>
-              </div>
+          <div style={{ display: 'flex', gap: 16, marginTop: 28, marginBottom: 12 }}>
+            <div style={{ ...tallyCard, borderColor: '#7A2E2E' }}>
+              <p style={{ ...monoLabel, marginTop: 0 }}>CALLOUS</p>
+              <p style={{ fontFamily: 'Georgia, serif', fontSize: 28, color: '#7A2E2E', margin: 0 }}>{record.callousCount}</p>
             </div>
-
-            {record.netScore !== 0 && (
-              <div style={{
-                display: 'inline-block',
-                padding: '6px 14px',
-                marginBottom: 20,
-                fontFamily: 'Georgia, serif',
-                fontSize: 14,
-                color: '#fff',
-                background: record.netScore > 0 ? '#2F5D50' : '#7A2E2E',
-              }}>
-                {record.netScore > 0
-                  ? `Record leans civic-minded (+${record.netScore})`
-                  : `Record leans callous (${record.netScore})`}
-              </div>
-            )}
-            {record.netScore === 0 && record.callousCount + record.civicCount > 0 && (
-              <div style={{
-                display: 'inline-block',
-                padding: '6px 14px',
-                marginBottom: 20,
-                fontFamily: 'Georgia, serif',
-                fontSize: 14,
-                color: '#5F5E5A',
-                background: '#E8E4DA',
-              }}>
-                Record is evenly balanced
-              </div>
-            )}
-          </>
+            <div style={{ ...tallyCard, borderColor: '#2F5D50' }}>
+              <p style={{ ...monoLabel, marginTop: 0 }}>CIVIC</p>
+              <p style={{ fontFamily: 'Georgia, serif', fontSize: 28, color: '#2F5D50', margin: 0 }}>{record.civicCount}</p>
+            </div>
+          </div>
         )}
 
         {record && (
-          <p style={{ fontSize: 13, color: '#5F5E5A', marginBottom: 32 }}>
+          <p style={{ fontSize: 13, color: '#5F5E5A', marginBottom: 24 }}>
             Record for {person.roleTitle}, {tenure}.
           </p>
         )}
+
+        {/* Scale: admin value + user suggestions */}
+        <div style={{ border: '1px solid #B4B2A9', background: '#fff', padding: '20px', marginBottom: 32 }}>
+          <p style={monoLabel}>CIVIC-MINDEDNESS SCALE (−100 CALLOUS · +100 CIVIC-MINDED)</p>
+
+          <div style={{ margin: '10px 0 16px' }}>
+            {person.adminScaleValue !== null ? (
+              <p style={{ fontFamily: 'Georgia, serif', fontSize: 26, color: person.adminScaleValue >= 0 ? '#2F5D50' : '#7A2E2E', margin: 0 }}>
+                {person.adminScaleValue > 0 ? '+' : ''}{person.adminScaleValue}
+                <span style={{ fontSize: 13, color: '#5F5E5A', fontFamily: 'Inter, system-ui, sans-serif', marginLeft: 10 }}>
+                  admin-assigned
+                </span>
+              </p>
+            ) : (
+              <p style={{ color: '#5F5E5A', fontSize: 14, margin: 0 }}>Not yet assigned an admin value.</p>
+            )}
+          </div>
+
+          {isAdmin && (
+            <div style={{ borderTop: '1px solid #E8E4DA', paddingTop: 14, marginBottom: 20 }}>
+              <label style={{ ...monoLabel, display: 'block', marginBottom: 6 }}>Set admin value</label>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <input
+                  type="number"
+                  min={-100}
+                  max={100}
+                  value={adminValueInput}
+                  onChange={(e) => setAdminValueInput(e.target.value)}
+                  style={{ ...inputStyle, width: 100 }}
+                />
+                <button
+                  onClick={handleSaveAdminValue}
+                  disabled={savingAdminValue}
+                  style={{ padding: '10px 18px', background: '#1C2024', color: '#fff', border: 'none', fontFamily: 'Georgia, serif', cursor: 'pointer' }}
+                >
+                  {savingAdminValue ? 'Saving…' : 'Save'}
+                </button>
+              </div>
+              {adminValueError && <p style={{ color: '#7A2E2E', fontSize: 13, marginTop: 6 }}>{adminValueError}</p>}
+            </div>
+          )}
+
+          <div style={{ borderTop: '1px solid #E8E4DA', paddingTop: 16 }}>
+            <p style={{ fontFamily: 'Georgia, serif', fontSize: 15, color: '#1C2024', marginBottom: 10 }}>
+              User-suggested values
+            </p>
+
+            {suggestions.length === 0 && (
+              <p style={{ color: '#5F5E5A', fontSize: 13, marginBottom: 16 }}>No suggestions yet.</p>
+            )}
+
+            {suggestions.map((s) => (
+              <div key={s.id} style={{ marginBottom: 12, paddingBottom: 12, borderBottom: '1px solid #E8E4DA' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                  <span style={{ fontFamily: 'Georgia, serif', fontSize: 16, color: s.value >= 0 ? '#2F5D50' : '#7A2E2E' }}>
+                    {s.value > 0 ? '+' : ''}{s.value}
+                  </span>
+                  <span style={{ fontSize: 12, color: '#5F5E5A' }}>
+                    {s.user.username} · {new Date(s.createdAt).toLocaleDateString('en-GB', { year: 'numeric', month: 'short', day: 'numeric' })}
+                  </span>
+                </div>
+                {s.reasoning && (
+                  <p style={{ fontSize: 13, color: '#1C2024', marginTop: 4, marginBottom: 0 }}>{s.reasoning}</p>
+                )}
+              </div>
+            ))}
+
+            {isAuthenticated ? (
+              <form onSubmit={handleSubmitSuggestion} style={{ marginTop: 16 }}>
+                <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+                  <input
+                    type="number"
+                    min={-100}
+                    max={100}
+                    placeholder="Your value (-100 to 100)"
+                    value={suggestionValue}
+                    onChange={(e) => setSuggestionValue(e.target.value)}
+                    style={{ ...inputStyle, width: 180 }}
+                    required
+                  />
+                </div>
+                <textarea
+                  placeholder="Your reasoning (optional)"
+                  value={suggestionReasoning}
+                  onChange={(e) => setSuggestionReasoning(e.target.value)}
+                  style={{ ...inputStyle, height: 60, resize: 'vertical', marginBottom: 8 }}
+                />
+                {suggestionError && <p style={{ color: '#7A2E2E', fontSize: 13, marginBottom: 8 }}>{suggestionError}</p>}
+                <button
+                  type="submit"
+                  disabled={submittingSuggestion}
+                  style={{ padding: '10px 18px', background: '#1C2024', color: '#fff', border: 'none', fontFamily: 'Georgia, serif', cursor: 'pointer' }}
+                >
+                  {submittingSuggestion ? 'Submitting…' : 'Submit suggestion'}
+                </button>
+              </form>
+            ) : (
+              <p style={{ fontSize: 13, color: '#5F5E5A', marginTop: 16 }}>Sign in to suggest a value.</p>
+            )}
+          </div>
+        </div>
 
         <h2 style={{ fontFamily: 'Georgia, serif', fontSize: 18, color: '#1C2024', marginBottom: 16 }}>
           Filed records
@@ -333,6 +498,16 @@ const tallyCard: React.CSSProperties = {
   border: '1px solid',
   background: '#fff',
   padding: '14px 18px',
+};
+
+const inputStyle: React.CSSProperties = {
+  width: '100%',
+  padding: '10px 12px',
+  border: '1px solid #B4B2A9',
+  background: '#fff',
+  fontFamily: 'Inter, system-ui, sans-serif',
+  fontSize: 14,
+  boxSizing: 'border-box',
 };
 
 function badgeStyle(color: string, bg: string): React.CSSProperties {

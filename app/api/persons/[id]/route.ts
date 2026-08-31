@@ -62,6 +62,7 @@ export async function GET(
     deathUnknown: person.deathUnknown,
     photoUrl: person.photoUrl,
     verificationStatus: person.verificationStatus,
+    adminScaleValue: person.adminScaleValue,
   };
 
   if (person.verificationStatus === 'DISPUTED') {
