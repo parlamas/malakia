@@ -23,25 +23,44 @@ interface Post {
   axis: 'CALLOUS' | 'CIVIC';
   narrative: string;
   evidenceUrl: string | null;
-  conductDate: string;
+  conductDate: string | null;
+  conductYear: number | null;
+  conductMonth: number | null;
+  conductDay: number | null;
+  conductEraNote: string | null;
   publicCapacityJustification: string;
   behavior: Behavior;
   author: { username: string };
   contests: Contest[];
 }
 
+interface PersonData {
+  id: string;
+  displayName: string;
+  disambiguators: string | null;
+  country: string;
+  personaCategory: string;
+  roleTitle: string;
+  roleStartDate: string | null;
+  roleEndDate: string | null;
+  roleStartYear: number | null;
+  roleEndYear: number | null;
+  approximatePeriod: string | null;
+  birthYear: number | null;
+  birthMonth: number | null;
+  birthDay: number | null;
+  birthDateUnknown: boolean;
+  isDeceased: boolean;
+  deathYear: number | null;
+  deathMonth: number | null;
+  deathDay: number | null;
+  deathDateUnknown: boolean;
+  photoUrl: string | null;
+  verificationStatus: 'UNVERIFIED' | 'ADMIN_CONFIRMED' | 'DISPUTED';
+}
+
 interface PersonRecord {
-  person: {
-    id: string;
-    displayName: string;
-    disambiguators: string | null;
-    country: string;
-    personaCategory: string;
-    roleTitle: string;
-    roleStartDate: string;
-    roleEndDate: string | null;
-    verificationStatus: 'UNVERIFIED' | 'ADMIN_CONFIRMED' | 'DISPUTED';
-  };
+  person: PersonData;
   record: { callousCount: number; civicCount: number; netScore: number } | null;
   posts: Post[];
   notice?: string;
@@ -52,10 +71,80 @@ const PERSONA_LABELS: Record<string, string> = {
   APPOINTED_OFFICIAL: 'Appointed official',
   JOURNALIST: 'Journalist',
   GOVERNMENT_MEMBER: 'Government member',
+  HISTORICAL_FIGURE: 'Historical or classical figure',
 };
 
-function formatDate(d: string) {
+const MONTH_NAMES = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
+];
+
+function formatDateTime(d: string) {
   return new Date(d).toLocaleDateString('en-GB', { year: 'numeric', month: 'short', day: 'numeric' });
+}
+
+// Formats a year/month/day trio where year may be signed (BCE), and
+// month/day may be absent — never falls back to a full Date() parse,
+// which is what produced the "1 Jan 1970" epoch bug for null dates.
+function formatFlexible(year: number | null, month?: number | null, day?: number | null): string | null {
+  if (year === null) return null;
+  const era = year < 0 ? 'BCE' : 'CE';
+  const absYear = Math.abs(year);
+  if (month) {
+    const monthName = MONTH_NAMES[month - 1] ?? '';
+    if (day) {
+      return `${day} ${monthName} ${absYear} ${era}`;
+    }
+    return `${monthName} ${absYear} ${era}`;
+  }
+  return `${absYear} ${era}`;
+}
+
+function formatTenure(person: PersonData): string {
+  if (person.personaCategory === 'HISTORICAL_FIGURE') {
+    if (person.approximatePeriod) return person.approximatePeriod;
+    const start = formatFlexible(person.roleStartYear);
+    const end = formatFlexible(person.roleEndYear);
+    if (start && end) return `${start} – ${end}`;
+    if (start) return `From ${start}`;
+    return 'Period not specified';
+  }
+  if (!person.roleStartDate) return 'Tenure not specified';
+  const start = formatDateTime(person.roleStartDate);
+  const end = person.roleEndDate ? formatDateTime(person.roleEndDate) : 'present';
+  return `${start} – ${end}`;
+}
+
+function formatBirthDeath(person: PersonData): string | null {
+  const parts: string[] = [];
+
+  if (person.birthDateUnknown) {
+    parts.push('Born: date unknown');
+  } else {
+    const birth = formatFlexible(person.birthYear, person.birthMonth, person.birthDay);
+    if (birth) parts.push(`Born: ${birth}`);
+  }
+
+  if (person.isDeceased) {
+    if (person.deathDateUnknown) {
+      parts.push('Died: date unknown');
+    } else {
+      const death = formatFlexible(person.deathYear, person.deathMonth, person.deathDay);
+      if (death) parts.push(`Died: ${death}`);
+    }
+  }
+
+  return parts.length > 0 ? parts.join(' · ') : null;
+}
+
+function formatConductDate(post: Post): string {
+  if (post.conductDate) {
+    const base = formatDateTime(post.conductDate);
+    return post.conductEraNote ? `${base} (${post.conductEraNote})` : base;
+  }
+  const flexible = formatFlexible(post.conductYear, post.conductMonth, post.conductDay);
+  if (!flexible) return 'Date not specified';
+  return post.conductEraNote ? `${flexible} (${post.conductEraNote})` : flexible;
 }
 
 export default function PersonProfilePage() {
@@ -97,21 +186,33 @@ export default function PersonProfilePage() {
   }
 
   const { person, record, posts, notice } = data;
-  const tenure = person.roleEndDate
-    ? `${formatDate(person.roleStartDate)} – ${formatDate(person.roleEndDate)}`
-    : `${formatDate(person.roleStartDate)} – present`;
+  const tenure = formatTenure(person);
+  const birthDeath = formatBirthDeath(person);
 
   return (
     <main style={pageStyle}>
       <div style={{ maxWidth: 700, margin: '0 auto', fontFamily: 'Inter, system-ui, sans-serif' }}>
         <p style={monoLabel}>PUBLIC RECORD</p>
-        <h1 style={{ fontFamily: 'Georgia, "Iowan Old Style", serif', fontSize: 32, color: '#1C2024', margin: '8px 0 4px' }}>
-          {person.displayName}
-        </h1>
-        <p style={{ color: '#5F5E5A', margin: '0 0 4px' }}>
-          {PERSONA_LABELS[person.personaCategory] ?? person.personaCategory} — {person.roleTitle}, {person.country}
-        </p>
-        <p style={{ ...monoLabel, marginTop: 0 }}>{tenure}</p>
+
+        <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start', marginTop: 8 }}>
+          {person.photoUrl && (
+            <img
+              src={person.photoUrl}
+              alt={person.displayName}
+              style={{ width: 96, height: 96, objectFit: 'cover', border: '1px solid #B4B2A9', flexShrink: 0 }}
+            />
+          )}
+          <div>
+            <h1 style={{ fontFamily: 'Georgia, "Iowan Old Style", serif', fontSize: 32, color: '#1C2024', margin: '0 0 4px' }}>
+              {person.displayName}
+            </h1>
+            <p style={{ color: '#5F5E5A', margin: '0 0 4px' }}>
+              {PERSONA_LABELS[person.personaCategory] ?? person.personaCategory} — {person.roleTitle}, {person.country}
+            </p>
+            <p style={{ ...monoLabel, marginTop: 0 }}>{tenure}</p>
+            {birthDeath && <p style={{ ...monoLabel, marginTop: 0 }}>{birthDeath}</p>}
+          </div>
+        </div>
 
         {person.verificationStatus === 'UNVERIFIED' && (
           <span style={badgeStyle('#B8860B', '#FBF1DC')}>Persona status not yet confirmed</span>
@@ -127,7 +228,7 @@ export default function PersonProfilePage() {
         )}
 
         {record && (
-          <div style={{ display: 'flex', gap: 16, marginTop: 28, marginBottom: 32 }}>
+          <div style={{ display: 'flex', gap: 16, marginTop: 28, marginBottom: 12 }}>
             <div style={{ ...tallyCard, borderColor: '#7A2E2E' }}>
               <p style={{ ...monoLabel, marginTop: 0 }}>CALLOUS</p>
               <p style={{ fontFamily: 'Georgia, serif', fontSize: 28, color: '#7A2E2E', margin: 0 }}>{record.callousCount}</p>
@@ -140,8 +241,10 @@ export default function PersonProfilePage() {
         )}
 
         {record && (
-          <p style={{ fontSize: 13, color: '#5F5E5A', marginTop: -20, marginBottom: 32 }}>
-            Record while serving as {person.roleTitle}, {tenure}. Not a claim about current conduct.
+          <p style={{ fontSize: 13, color: '#5F5E5A', marginBottom: 32 }}>
+            {person.personaCategory === 'HISTORICAL_FIGURE'
+              ? `Record for ${person.roleTitle}, ${tenure}.`
+              : `Record while serving as ${person.roleTitle}, ${tenure}. Not a claim about current conduct.`}
           </p>
         )}
 
@@ -159,7 +262,7 @@ export default function PersonProfilePage() {
             <div key={post.id} style={{ border: '1px solid #B4B2A9', background: '#fff', padding: '16px 20px', marginBottom: 16 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
                 <span style={{ color, fontFamily: 'Georgia, serif', fontSize: 15 }}>{post.behavior.label}</span>
-                <span style={monoLabel}>{formatDate(post.conductDate)}</span>
+                <span style={monoLabel}>{formatConductDate(post)}</span>
               </div>
               <p style={{ marginTop: 10, marginBottom: 10, lineHeight: 1.6, color: '#1C2024' }}>{post.narrative}</p>
               <p style={{ fontSize: 13, color: '#5F5E5A', marginBottom: 8 }}>

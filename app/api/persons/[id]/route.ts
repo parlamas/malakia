@@ -21,7 +21,7 @@ export async function GET(
             include: { contestingUser: { select: { id: true, username: true } } },
           },
         },
-        orderBy: { conductDate: 'desc' },
+        orderBy: { createdAt: 'desc' },
       },
     },
   });
@@ -39,6 +39,19 @@ export async function GET(
     roleTitle: person.roleTitle,
     roleStartDate: person.roleStartDate,
     roleEndDate: person.roleEndDate,
+    roleStartYear: person.roleStartYear,
+    roleEndYear: person.roleEndYear,
+    approximatePeriod: person.approximatePeriod,
+    birthYear: person.birthYear,
+    birthMonth: person.birthMonth,
+    birthDay: person.birthDay,
+    birthDateUnknown: person.birthDateUnknown,
+    isDeceased: person.isDeceased,
+    deathYear: person.deathYear,
+    deathMonth: person.deathMonth,
+    deathDay: person.deathDay,
+    deathDateUnknown: person.deathDateUnknown,
+    photoUrl: person.photoUrl,
     verificationStatus: person.verificationStatus,
   };
 

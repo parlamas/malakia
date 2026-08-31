@@ -130,15 +130,24 @@ enum DisputeType {
 model Person {
   id                  String              @id @default(cuid())
   displayName         String
-  disambiguators      String?             // city, org, title — for name collisions
+  disambiguators      String?
   country             String
   personaCategory     PersonaCategory
   roleTitle           String
-  roleStartDate       DateTime?           // null for HISTORICAL_FIGURE — use roleStartYear instead
-  roleEndDate         DateTime?           // null = still serving, or historical
-  roleStartYear       Int?                // signed year, negative = BCE — historical figures only
+  roleStartDate       DateTime?
+  roleEndDate         DateTime?
+  roleStartYear       Int?
   roleEndYear         Int?
-  approximatePeriod   String?             // free text, e.g. "5th century BCE Athens" — historical figures only
+  approximatePeriod   String?
+  birthYear           Int?                // signed, negative = BCE
+  birthMonth          Int?
+  birthDay            Int?
+  birthDateUnknown    Boolean             @default(false)
+  deathYear           Int?
+  deathMonth          Int?
+  deathDay            Int?
+  isDeceased          Boolean             @default(false)
+  deathDateUnknown    Boolean             @default(false)
   roleEvidenceUrl     String?
   photoUrl            String?
   verificationStatus  VerificationStatus  @default(UNVERIFIED)
