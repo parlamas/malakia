@@ -3,6 +3,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import DateSelect from '@/components/DateSelect';
 
 type Axis = 'CALLOUS' | 'CIVIC';
 
@@ -278,13 +279,17 @@ export default function SubmitPage() {
                 <div style={grid2}>
                   <label style={dateLabel}>
                     Role start date
-                    <input type="date" value={newPerson.roleStartDate}
-                      onChange={(e) => setNewPerson({ ...newPerson, roleStartDate: e.target.value })} style={inputStyle} />
+                    <DateSelect
+                      value={newPerson.roleStartDate}
+                      onChange={(v) => setNewPerson({ ...newPerson, roleStartDate: v })}
+                    />
                   </label>
                   <label style={dateLabel}>
                     Role end date (leave blank if still serving)
-                    <input type="date" value={newPerson.roleEndDate}
-                      onChange={(e) => setNewPerson({ ...newPerson, roleEndDate: e.target.value })} style={inputStyle} />
+                    <DateSelect
+                      value={newPerson.roleEndDate}
+                      onChange={(v) => setNewPerson({ ...newPerson, roleEndDate: v })}
+                    />
                   </label>
                 </div>
 
@@ -332,8 +337,7 @@ export default function SubmitPage() {
 
             <label style={dateLabel}>
               Date the conduct occurred
-              <input type="date" value={conductDate} onChange={(e) => setConductDate(e.target.value)}
-                style={{ ...inputStyle, marginTop: 4 }} required />
+              <DateSelect value={conductDate} onChange={setConductDate} required />
             </label>
 
             <textarea
