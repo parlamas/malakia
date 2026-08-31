@@ -4,6 +4,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
+import BalanceScale from '@/components/BalanceScale';
 
 interface Behavior {
   label: string;
@@ -322,17 +323,15 @@ export default function PersonProfilePage() {
           <p style={monoLabel}>CIVIC-MINDEDNESS SCALE (−100 CALLOUS · +100 CIVIC-MINDED)</p>
 
           <div style={{ margin: '10px 0 16px' }}>
-            {person.adminScaleValue !== null ? (
-              <p style={{ fontFamily: 'Georgia, serif', fontSize: 26, color: person.adminScaleValue >= 0 ? '#2F5D50' : '#7A2E2E', margin: 0 }}>
-                {person.adminScaleValue > 0 ? '+' : ''}{person.adminScaleValue}
-                <span style={{ fontSize: 13, color: '#5F5E5A', fontFamily: 'Inter, system-ui, sans-serif', marginLeft: 10 }}>
-                  admin-assigned
-                </span>
-              </p>
-            ) : (
-              <p style={{ color: '#5F5E5A', fontSize: 14, margin: 0 }}>Not yet assigned an admin value.</p>
-            )}
-          </div>
+  {person.adminScaleValue !== null ? (
+    <>
+      <BalanceScale value={person.adminScaleValue} />
+      <p style={{ fontSize: 13, color: '#5F5E5A', textAlign: 'center', marginTop: 4 }}>admin-assigned</p>
+    </>
+  ) : (
+    <p style={{ color: '#5F5E5A', fontSize: 14, margin: 0 }}>Not yet assigned an admin value.</p>
+  )}
+</div>
 
           {isAdmin && (
             <div style={{ borderTop: '1px solid #E8E4DA', paddingTop: 14, marginBottom: 20 }}>
