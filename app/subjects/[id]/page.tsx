@@ -512,7 +512,7 @@ export default function SubjectProfilePage() {
 
               return (
                 <div key={s.id} style={{ marginBottom: 20, paddingBottom: 16, borderBottom: '1px solid #E8E4DA' }}>
-                  <p style={{ fontWeight: 'bold', color: '#1D4ED8', fontSize: 13, marginBottom: 4 }}>
+                  <p style={{ fontWeight: 'bold', color: '#1D4ED8', fontSize: 11, marginBottom: 4 }}>
   {s.user.username}'s suggestion — {suggestionDisplayId}
 </p>
 <BalanceScale value={s.value} width={180} />
@@ -619,7 +619,7 @@ export default function SubjectProfilePage() {
           const postDisplayId = computeDisplayId('P', post.author.username, post.createdAt);
           return (
             <div key={post.id} style={{ border: '1px solid #B4B2A9', background: '#fff', padding: '16px 20px', marginBottom: 16 }}>
-              <p style={{ fontWeight: 'bold', color: '#1D4ED8', fontSize: 12, marginBottom: 6 }}>{postDisplayId}</p>
+              <p style={{ fontWeight: 'bold', color: '#1D4ED8', fontSize: 11, marginBottom: 6 }}>{postDisplayId}</p>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
                 <span style={{ color, fontFamily: 'Georgia, serif', fontSize: 15 }}>{post.behavior.label}</span>
                 <span style={monoLabel}>{formatConductDate(post)}</span>
