@@ -87,6 +87,7 @@ interface ScaleSuggestion {
   reasoning: string | null;
   createdAt: string;
   user: { username: string };
+  replyTo: { createdAt: string; user: { username: string } } | null;
 }
 
 interface ReactionItem {
@@ -525,9 +526,10 @@ export default function SubjectProfilePage() {
 
                   {reactions.map((r) => (
                     <div key={r.id} style={{ marginLeft: 20, marginTop: 10, paddingLeft: 12, borderLeft: '2px solid #B4B2A9' }}>
-                      <p style={{ fontWeight: 'bold', color: '#1D4ED8', fontSize: 13, marginBottom: 4 }}>
-                        {r.user.username} reacts to {suggestionDisplayId}
-                      </p>
+                      <p style={{ fontWeight: 'bold', color: '#1D4ED8', fontSize: 11, marginBottom: 4 }}>
+  {s.user.username}'s suggestion — {suggestionDisplayId}
+  {s.replyTo && ` to ${computeDisplayId('S', s.replyTo.user.username, s.replyTo.createdAt)}`}
+</p>
                       {r.value !== null && r.value !== undefined && (
                         <BalanceScale value={r.value} width={140} />
                       )}
