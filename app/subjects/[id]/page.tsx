@@ -513,12 +513,12 @@ export default function SubjectProfilePage() {
               return (
                 <div key={s.id} style={{ marginBottom: 20, paddingBottom: 16, borderBottom: '1px solid #E8E4DA' }}>
                   <p style={{ fontWeight: 'bold', color: '#1D4ED8', fontSize: 13, marginBottom: 4 }}>
-                    {suggestionDisplayId}
-                  </p>
-                  <BalanceScale value={s.value} width={180} />
-                  <p style={{ fontSize: 12, color: '#5F5E5A', marginTop: 4 }}>
-                    {s.user.username} · {new Date(s.createdAt).toLocaleDateString('en-GB', { year: 'numeric', month: 'short', day: 'numeric' })}
-                  </p>
+  {s.user.username}'s suggestion — {suggestionDisplayId}
+</p>
+<BalanceScale value={s.value} width={180} />
+<p style={{ fontSize: 12, color: '#5F5E5A', marginTop: 4 }}>
+  Filed {new Date(s.createdAt).toLocaleDateString('en-GB', { year: 'numeric', month: 'short', day: 'numeric' })}
+</p>
                   {s.reasoning && (
                     <p style={{ fontSize: 13, color: '#1C2024', marginTop: 4, marginBottom: 8 }}>{s.reasoning}</p>
                   )}
