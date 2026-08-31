@@ -6,6 +6,7 @@ export const dynamic = "force-dynamic";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 
 export default function SignIn() {
@@ -49,83 +50,110 @@ export default function SignIn() {
 
 
   return (
-    <div className="min-h-screen bg-white text-black">
-      
-      <div className="flex items-center justify-center py-12">
-        <form onSubmit={handleSubmit} className="space-y-6 w-full max-w-md p-6">
-          <div>
-            <h1 className="text-2xl font-bold">Sign In</h1>
-            <p className="text-gray-600 mt-2">
-              Enter your credentials to access your account
-            </p>
+    <main style={{ background: '#EDEAE2', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '3rem 1.5rem' }}>
+      <form onSubmit={handleSubmit} style={{ width: '100%', maxWidth: 420, fontFamily: 'Inter, system-ui, sans-serif' }}>
+        <p style={{ fontFamily: 'ui-monospace, "IBM Plex Mono", monospace', fontSize: 13, color: '#5F5E5A', letterSpacing: '0.03em', marginBottom: 6 }}>
+          MALAKIA
+        </p>
+        <h1 style={{ fontFamily: 'Georgia, "Iowan Old Style", serif', fontSize: 28, color: '#1C2024', margin: '0 0 6px' }}>
+          Sign In
+        </h1>
+        <p style={{ color: '#5F5E5A', marginBottom: 28, lineHeight: 1.5 }}>
+          Enter your credentials to access your account.
+        </p>
+
+        {error && (
+          <div style={{
+            background: '#F3E8E6',
+            border: '1px solid #7A2E2E',
+            color: '#7A2E2E',
+            padding: '12px 14px',
+            marginBottom: 20,
+            fontSize: 14,
+          }}>
+            {error}
           </div>
+        )}
 
-          {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-              {error}
-            </div>
-          )}
-
-          <div>
-            <label className="block text-sm font-medium mb-2">Email</label>
-            <input
-              type="email"
-              placeholder="you@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full p-3 border border-gray-300 rounded bg-white text-black"
-              required
-              disabled={loading}
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-2">Password</label>
-            <input
-              type="password"
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full p-3 border border-gray-300 rounded bg-white text-black"
-              required
-              disabled={loading}
-            />
-          </div>
-
-          <div className="text-right">
-            <a
-              href="/auth/forgot-password"
-              className="text-sm text-blue-500 hover:underline"
-            >
-              Forgot your password?
-            </a>
-          </div>
-
-          <button
-            type="submit"
+        <label style={labelStyle}>
+          Email
+          <input
+            type="email"
+            placeholder="you@example.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            style={inputStyle}
+            required
             disabled={loading}
-            className={`w-full p-3 rounded font-medium ${
-              loading
-                ? "bg-gray-400 cursor-not-allowed"
-                : "bg-blue-500 hover:bg-blue-600 text-white"
-            }`}
-          >
-            Sign In
-          </button>
+          />
+        </label>
 
-          <div className="text-center pt-4 border-t border-gray-200">
-            <p className="text-gray-600">
-              Don&apos;t have an account?{" "}
-              <a
-                href="/auth/signup"
-                className="text-blue-500 hover:underline font-medium"
-              >
-                Sign up
-              </a>
-            </p>
-          </div>
-        </form>
-      </div>
-    </div>
+        <label style={{ ...labelStyle, marginTop: 18 }}>
+          Password
+          <input
+            type="password"
+            placeholder="••••••••"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            style={inputStyle}
+            required
+            disabled={loading}
+          />
+        </label>
+
+        <div style={{ textAlign: 'right', marginTop: 10 }}>
+          <Link href="/auth/forgot-password" style={{ fontSize: 13, color: '#5F5E5A' }}>
+            Forgot your password?
+          </Link>
+        </div>
+
+        <button
+          type="submit"
+          disabled={loading}
+          style={{
+            width: '100%',
+            padding: '14px 0',
+            marginTop: 24,
+            background: loading ? '#B4B2A9' : '#1C2024',
+            color: '#fff',
+            border: 'none',
+            fontFamily: 'Georgia, serif',
+            fontSize: 16,
+            cursor: loading ? 'not-allowed' : 'pointer',
+          }}
+        >
+          {loading ? 'Signing in…' : 'Sign In'}
+        </button>
+
+        <div style={{ textAlign: 'center', marginTop: 28, paddingTop: 20, borderTop: '1px solid #D8D4C8' }}>
+          <p style={{ color: '#5F5E5A', fontSize: 14 }}>
+            Don&apos;t have an account?{" "}
+            <Link href="/auth/signup" style={{ color: '#1C2024', fontWeight: 600, textDecoration: 'underline' }}>
+              Sign up
+            </Link>
+          </p>
+        </div>
+      </form>
+    </main>
   );
 }
+
+const labelStyle: React.CSSProperties = {
+  display: 'block',
+  fontSize: 12,
+  color: '#5F5E5A',
+  fontFamily: 'ui-monospace, "IBM Plex Mono", monospace',
+  letterSpacing: '0.03em',
+};
+
+const inputStyle: React.CSSProperties = {
+  width: '100%',
+  padding: '12px 14px',
+  marginTop: 6,
+  border: '1px solid #B4B2A9',
+  background: '#fff',
+  fontFamily: 'Inter, system-ui, sans-serif',
+  fontSize: 15,
+  color: '#1C2024',
+  boxSizing: 'border-box',
+};
