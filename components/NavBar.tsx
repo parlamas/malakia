@@ -55,23 +55,23 @@ style={{ marginLeft: '40px' }}
         </div>
 
         {/* Sign in / user — hidden on mobile, moves into burger menu instead */}
-        <div className="hidden sm:flex items-center flex-shrink-0" style={{ marginRight: '40px' }}>
-          {user === null ? null : user.authenticated ? (
-            <div className="flex items-center gap-4">
-              <span className="text-black font-medium">
-                {user.username}
-              </span>
-              <SignOutButton />
-            </div>
-          ) : (
-            <Link
-              href="/auth/signin"
-              className="bg-brown-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors"
-            >
-              Sign In
-            </Link>
-          )}
-        </div>
+<div className="hidden sm:flex items-center flex-shrink-0" style={{ marginRight: '40px' }}>
+  {user === null ? null : user.authenticated ? (
+    <div className="flex items-center gap-4">
+      <span className="text-black font-medium">
+        {user.username}
+      </span>
+      <SignOutButton />
+    </div>
+  ) : (
+    <Link
+      href="/auth/signin"
+      className="bg-[#8B4513] text-white px-4 py-2 rounded hover:bg-[#6f3610] transition-colors"
+    >
+      Sign In
+    </Link>
+  )}
+</div>
       </div>
 
       {isMenuOpen && (
