@@ -107,6 +107,14 @@ style={{ marginLeft: '40px' }}
               Classic malakia quotes
             </Link>
 
+            <Link
+  href="/persons"
+  className="text-gray-700 hover:text-blue-600 transition-colors text-sm"
+  onClick={() => setIsMenuOpen(false)}
+>
+  Browse records
+</Link>
+
             {user?.isAdmin && (
               <Link
                 href="/admin/moderate"
