@@ -51,7 +51,7 @@ export default function SignIn() {
 
   return (
     <main style={{ background: '#EDEAE2', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '3rem 1.5rem' }}>
-      <form onSubmit={handleSubmit} style={{ width: '100%', maxWidth: 420, fontFamily: 'Inter, system-ui, sans-serif', marginTop: '-80px' }}>
+      <form onSubmit={handleSubmit} style={{ width: '100%', maxWidth: 420, fontFamily: 'Inter, system-ui, sans-serif', marginTop: '-130px' }}>
         <p style={{ fontFamily: 'ui-monospace, "IBM Plex Mono", monospace', fontSize: 13, color: '#5F5E5A', letterSpacing: '0.03em', marginBottom: 6 }}>
           MALAKIA
         </p>
