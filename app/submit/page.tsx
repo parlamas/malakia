@@ -3,6 +3,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import DateSelect from '@/components/DateSelect';
 
 type Axis = 'CALLOUS' | 'CIVIC';
@@ -29,6 +30,8 @@ const PERSONA_CATEGORIES = [
 ];
 
 export default function SubmitPage() {
+  const [authStatus, setAuthStatus] = useState<'checking' | 'authenticated' | 'unauthenticated'>('checking');
+
   const [axis, setAxis] = useState<Axis>('CALLOUS');
   const [behaviors, setBehaviors] = useState<Behavior[]>([]);
   const [behaviorId, setBehaviorId] = useState('');
@@ -57,6 +60,15 @@ export default function SubmitPage() {
 
   const [status, setStatus] = useState<'idle' | 'submitting' | 'error' | 'success'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
+
+  useEffect(() => {
+    fetch('/api/auth/me', { credentials: 'include' })
+      .then((r) => r.json())
+      .then((data) => {
+        setAuthStatus(data.authenticated ? 'authenticated' : 'unauthenticated');
+      })
+      .catch(() => setAuthStatus('unauthenticated'));
+  }, []);
 
   useEffect(() => {
     fetch(`/api/behaviors?axis=${axis}`)
@@ -148,6 +160,46 @@ export default function SubmitPage() {
 
   const axisColor = axis === 'CALLOUS' ? '#7A2E2E' : '#2F5D50';
   const axisBg = axis === 'CALLOUS' ? '#F3E8E6' : '#E7EEEA';
+
+  if (authStatus === 'checking') {
+    return (
+      <main style={{ background: '#EDEAE2', minHeight: '100vh', padding: '4rem 1.5rem' }}>
+        <p style={{ color: '#5F5E5A', fontFamily: 'Inter, system-ui, sans-serif', textAlign: 'center' }}>Loading…</p>
+      </main>
+    );
+  }
+
+  if (authStatus === 'unauthenticated') {
+    return (
+      <main style={{ background: '#EDEAE2', minHeight: '100vh', padding: '4rem 1.5rem' }}>
+        <div style={{ maxWidth: 480, margin: '0 auto', textAlign: 'center', fontFamily: 'Inter, system-ui, sans-serif' }}>
+          <p style={{ fontFamily: 'ui-monospace, "IBM Plex Mono", monospace', fontSize: 13, color: '#5F5E5A', letterSpacing: '0.03em' }}>
+            SIGN-IN REQUIRED
+          </p>
+          <h1 style={{ fontFamily: 'Georgia, "Iowan Old Style", serif', fontSize: 26, color: '#1C2024', marginTop: 8, marginBottom: 16 }}>
+            You need to sign in to file a record.
+          </h1>
+          <p style={{ color: '#5F5E5A', marginBottom: 24, lineHeight: 1.6 }}>
+            Filing requires an account — you're responsible for what you post, and moderation is applied to signed-in users only.
+          </p>
+          <Link
+            href="/auth/signin"
+            style={{
+              display: 'inline-block',
+              padding: '12px 32px',
+              background: '#1C2024',
+              color: '#fff',
+              textDecoration: 'none',
+              fontFamily: 'Georgia, serif',
+              fontSize: 15,
+            }}
+          >
+            Sign In
+          </Link>
+        </div>
+      </main>
+    );
+  }
 
   if (status === 'success') {
     return (
