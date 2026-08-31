@@ -55,7 +55,7 @@ style={{ marginLeft: '40px' }}
         </div>
 
         {/* Sign in / user — hidden on mobile, moves into burger menu instead */}
-<div className="hidden sm:flex items-center flex-shrink-0" style={{ marginRight: '40px' }}>
+<div className="hidden sm:flex items-center flex-shrink-0" style={{ marginRight: '20px' }}>
   {user === null ? null : user.authenticated ? (
     <div className="flex items-center gap-4">
       <span className="text-black font-medium">
