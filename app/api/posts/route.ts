@@ -38,106 +38,118 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid conductDate' }, { status: 400 });
   }
 
-  // Resolve or create the Person
-  let person;
-  if (subject.existingPersonId) {
-    person = await prisma.person.findUnique({ where: { id: subject.existingPersonId } });
-    if (!person) {
-      return NextResponse.json({ error: 'Referenced person not found' }, { status: 404 });
-    }
-  } else {
-    const {
-      displayName, country, personaCategory, roleTitle,
-      roleStartDate, roleEndDate, roleStartYear, roleEndYear, approximatePeriod,
-      roleEvidenceUrl, disambiguators, photoUrl,
-    } = subject;
-
-    if (!displayName || !country || !personaCategory || !roleTitle) {
-      return NextResponse.json({ error: 'Missing required subject fields' }, { status: 400 });
-    }
-
-    const isHistorical = personaCategory === 'HISTORICAL_FIGURE';
-
-    if (!isHistorical && !roleStartDate) {
-      return NextResponse.json({ error: 'roleStartDate is required for this persona category' }, { status: 400 });
-    }
-
-    const possibleMatches = await prisma.person.findMany({
-      where: { displayName: { equals: displayName, mode: 'insensitive' }, country },
-      take: 5,
-    });
-    if (possibleMatches.length > 0 && !subject.confirmNewPerson) {
-      return NextResponse.json(
-        { needsDisambiguation: true, possibleMatches },
-        { status: 409 },
-      );
-    }
-
-    person = await prisma.person.create({
-      data: {
-        displayName,
-        disambiguators,
-        country,
-        personaCategory,
-        roleTitle,
-        roleStartDate: roleStartDate ? new Date(roleStartDate) : null,
-        roleEndDate: roleEndDate ? new Date(roleEndDate) : null,
-        roleStartYear: isHistorical ? roleStartYear : null,
-        roleEndYear: isHistorical ? roleEndYear : null,
-        approximatePeriod: isHistorical ? approximatePeriod : null,
-        roleEvidenceUrl,
-        photoUrl,
-        verificationStatus: 'UNVERIFIED',
-      },
-    });
-  }
-
-  const isHistoricalSubject = person.personaCategory === 'HISTORICAL_FIGURE';
-
-  // Tenure-vs-conduct scoping only applies to living/modern role-holders.
-  // Historical figures have no tenure gate — the whole documented life is in scope.
-  if (!isHistoricalSubject) {
-    if (!conductDateParsed) {
-      return NextResponse.json({ error: 'conductDate is required for this persona category' }, { status: 400 });
-    }
-    if (person.roleStartDate && conductDateParsed < person.roleStartDate) {
-      return NextResponse.json(
-        { error: 'Conduct date is before the subject\'s tenure began' },
-        { status: 422 },
-      );
-    }
-    if (person.roleEndDate && conductDateParsed > person.roleEndDate) {
-      return NextResponse.json(
-        { error: 'Conduct date is after the subject left the qualifying role — out of scope' },
-        { status: 422 },
-      );
-    }
-  }
-
   const behavior = await prisma.behavior.findUnique({ where: { id: behaviorId } });
   if (!behavior || !behavior.active || behavior.axis !== axis) {
     return NextResponse.json({ error: 'Invalid behavior for this axis' }, { status: 400 });
   }
 
-  const post = await prisma.post.create({
-    data: {
-      authorUserId: user.id,
-      subjectPersonId: person.id,
-      axis,
-      behaviorId,
-      narrative,
-      evidenceUrl,
-      conductDate: conductDateParsed,
-      conductYear: isHistoricalSubject ? conductYear : null,
-      conductMonth: isHistoricalSubject ? conductMonth : null,
-      conductDay: isHistoricalSubject ? conductDay : null,
-      conductEraNote: isHistoricalSubject ? conductEraNote : null,
-      publicCapacityJustification,
-      status: 'PENDING',
-    },
-  });
+  try {
+    const result = await prisma.$transaction(async (tx) => {
+      // Resolve or create the Person
+      let person;
+      if (subject.existingPersonId) {
+        person = await tx.person.findUnique({ where: { id: subject.existingPersonId } });
+        if (!person) {
+          throw new HttpError(404, 'Referenced person not found');
+        }
+      } else {
+        const {
+          displayName, country, personaCategory, roleTitle,
+          roleStartDate, roleEndDate, roleStartYear, roleEndYear, approximatePeriod,
+          roleEvidenceUrl, disambiguators, photoUrl,
+        } = subject;
 
-  return NextResponse.json({ post, person }, { status: 201 });
+        if (!displayName || !country || !personaCategory || !roleTitle) {
+          throw new HttpError(400, 'Missing required subject fields');
+        }
+
+        const isHistorical = personaCategory === 'HISTORICAL_FIGURE';
+
+        const possibleMatches = await tx.person.findMany({
+          where: { displayName: { equals: displayName, mode: 'insensitive' }, country },
+          take: 5,
+        });
+        if (possibleMatches.length > 0 && !subject.confirmNewPerson) {
+          throw new DisambiguationNeeded(possibleMatches);
+        }
+
+        person = await tx.person.create({
+          data: {
+            displayName,
+            disambiguators,
+            country,
+            personaCategory,
+            roleTitle,
+            roleStartDate: roleStartDate ? new Date(roleStartDate) : null,
+            roleEndDate: roleEndDate ? new Date(roleEndDate) : null,
+            roleStartYear: isHistorical ? roleStartYear : null,
+            roleEndYear: isHistorical ? roleEndYear : null,
+            approximatePeriod: isHistorical ? approximatePeriod : null,
+            roleEvidenceUrl,
+            photoUrl,
+            verificationStatus: 'UNVERIFIED',
+          },
+        });
+      }
+
+      const isHistoricalSubject = person.personaCategory === 'HISTORICAL_FIGURE';
+
+      // Conduct-date-vs-tenure scoping removed — a post's conduct date is no
+      // longer required to fall within the subject's tenure window. Conduct
+      // before or after the qualifying role is now in scope, since events in
+      // a person's life can be related regardless of when they held office.
+
+      const post = await tx.post.create({
+        data: {
+          authorUserId: user.id,
+          subjectPersonId: person.id,
+          axis,
+          behaviorId,
+          narrative,
+          evidenceUrl,
+          conductDate: conductDateParsed,
+          conductYear: isHistoricalSubject ? conductYear : (conductDateParsed ? null : conductYear),
+          conductMonth: isHistoricalSubject ? conductMonth : (conductDateParsed ? null : conductMonth),
+          conductDay: isHistoricalSubject ? conductDay : (conductDateParsed ? null : conductDay),
+          conductEraNote: isHistoricalSubject ? conductEraNote : null,
+          publicCapacityJustification,
+          status: 'PENDING',
+        },
+      });
+
+      return { post, person };
+    });
+
+    return NextResponse.json(result, { status: 201 });
+  } catch (err) {
+    if (err instanceof DisambiguationNeeded) {
+      return NextResponse.json(
+        { needsDisambiguation: true, possibleMatches: err.matches },
+        { status: 409 },
+      );
+    }
+    if (err instanceof HttpError) {
+      return NextResponse.json({ error: err.message }, { status: err.status });
+    }
+    console.error('Post creation failed:', err);
+    return NextResponse.json({ error: 'Something went wrong creating this record' }, { status: 500 });
+  }
+}
+
+class HttpError extends Error {
+  status: number;
+  constructor(status: number, message: string) {
+    super(message);
+    this.status = status;
+  }
+}
+
+class DisambiguationNeeded extends Error {
+  matches: unknown[];
+  constructor(matches: unknown[]) {
+    super('Disambiguation needed');
+    this.matches = matches;
+  }
 }
 
 export async function GET(req: NextRequest) {
