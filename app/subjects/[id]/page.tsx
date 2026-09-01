@@ -651,6 +651,18 @@ export default function SubjectProfilePage() {
     setAdminPositives([]);
   }
 
+  function loadAdminJudgmentForEditing() {
+  if (!subject.adminJudgment) return;
+  const negatives = subject.adminJudgment.entries
+    .filter((e) => e.side === 'NEGATIVE')
+    .map((e) => ({ magnitude: String(e.magnitude), justification: e.justification ?? '' }));
+  const positives = subject.adminJudgment.entries
+    .filter((e) => e.side === 'POSITIVE')
+    .map((e) => ({ magnitude: String(e.magnitude), justification: e.justification ?? '' }));
+  setAdminNegatives(negatives);
+  setAdminPositives(positives);
+}
+
   async function handleSetVerification(newStatus: 'ADMIN_CONFIRMED' | 'DISPUTED' | 'UNVERIFIED') {
     setVerifyError('');
     let reason: string | null = null;
@@ -935,9 +947,18 @@ export default function SubjectProfilePage() {
           {isAdmin && (
             <div style={{ borderTop: '1px solid #E8E4DA', marginTop: 20, paddingTop: 16 }} onClick={(e) => e.stopPropagation()}>
               <p style={{ fontFamily: 'Georgia, serif', fontSize: 14, color: '#1C2024', marginBottom: 10 }}>
-                Set admin judgment (replaces the current one)
-              </p>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+  Set admin judgment (replaces the current one)
+</p>
+{subject.adminJudgment && adminNegatives.length === 0 && adminPositives.length === 0 && (
+  <button
+    type="button"
+    onClick={loadAdminJudgmentForEditing}
+    style={{ marginBottom: 12, padding: '6px 14px', background: '#B8860B', color: '#fff', border: 'none', fontSize: 12, cursor: 'pointer' }}
+  >
+    Load current entries to edit
+  </button>
+)}
+<div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                 <PairEditor side="NEGATIVE" pairs={adminNegatives} onChange={setAdminNegatives} color="#7A2E2E" />
                 <PairEditor side="POSITIVE" pairs={adminPositives} onChange={setAdminPositives} color="#2F5D50" />
               </div>
