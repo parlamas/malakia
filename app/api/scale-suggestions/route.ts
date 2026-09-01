@@ -11,12 +11,16 @@ interface EntryInput {
 }
 
 const MAX_JUSTIFICATION_LENGTH = 500;
+const MAX_PAIRS_PER_SIDE = 10;
 
 function validateEntries(entries: EntryInput[]): string | null {
   if (!Array.isArray(entries)) return 'entries must be an array';
 
   const negatives = entries.filter((e) => e.side === 'NEGATIVE');
   const positives = entries.filter((e) => e.side === 'POSITIVE');
+
+  if (negatives.length > MAX_PAIRS_PER_SIDE) return `No more than ${MAX_PAIRS_PER_SIDE} negative pairs are allowed`;
+  if (positives.length > MAX_PAIRS_PER_SIDE) return `No more than ${MAX_PAIRS_PER_SIDE} positive pairs are allowed`;
 
   for (const e of entries) {
     if (e.side !== 'NEGATIVE' && e.side !== 'POSITIVE') return 'Invalid entry side';

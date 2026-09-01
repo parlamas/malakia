@@ -273,6 +273,8 @@ function JudgmentBreakdown({
   );
 }
 
+const MAX_PAIRS_PER_SIDE = 10;
+
 function PairEditor({
   side,
   pairs,
@@ -290,6 +292,7 @@ function PairEditor({
     onChange(next);
   }
   function addPair() {
+    if (pairs.length >= MAX_PAIRS_PER_SIDE) return;
     onChange([...pairs, { magnitude: '', justification: '' }]);
   }
   function removePair(index: number) {
@@ -327,9 +330,22 @@ function PairEditor({
           </button>
         </div>
       ))}
-      <button type="button" onClick={addPair} style={{ fontSize: 12, padding: '6px 12px', background: 'transparent', border: `1px solid ${color}`, color, cursor: 'pointer' }}>
-        + Add {side === 'NEGATIVE' ? 'negative' : 'positive'} pair
-      </button>
+      <button
+  type="button"
+  onClick={addPair}
+  disabled={pairs.length >= MAX_PAIRS_PER_SIDE}
+  style={{
+    fontSize: 12,
+    padding: '6px 12px',
+    background: 'transparent',
+    border: `1px solid ${color}`,
+    color,
+    cursor: pairs.length >= MAX_PAIRS_PER_SIDE ? 'not-allowed' : 'pointer',
+    opacity: pairs.length >= MAX_PAIRS_PER_SIDE ? 0.5 : 1,
+  }}
+>
+  + Add {side === 'NEGATIVE' ? 'negative' : 'positive'} pair ({pairs.length}/{MAX_PAIRS_PER_SIDE})
+</button>
     </div>
   );
 }
