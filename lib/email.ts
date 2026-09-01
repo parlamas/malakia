@@ -126,3 +126,80 @@ export async function sendPasswordResetEmail(
 }
 
 }
+
+/* ======================================================
+   MODERATION OUTCOME EMAIL
+====================================================== */
+
+export async function sendModerationEmail(
+  email: string,
+  params: {
+    itemType: 'post' | 'suggestion';
+    outcome: 'approved' | 'rejected';
+    subjectName?: string;
+    rejectionReason?: string;
+    itemUrl?: string;
+  }
+) {
+  console.log("📧 Attempting to send moderation email to:", email)
+
+  if (
+    !process.env.EMAIL_SERVER_HOST ||
+    !process.env.EMAIL_SERVER_USER ||
+    !process.env.EMAIL_SERVER_PASSWORD
+  ) {
+    console.log("⚠️ Email environment variables are not set properly")
+    return Promise.resolve()
+  }
+
+  const transporter = nodemailer.createTransport({
+    host: process.env.EMAIL_SERVER_HOST,
+    port: parseInt(process.env.EMAIL_SERVER_PORT || "587"),
+    secure: process.env.EMAIL_SERVER_SECURE === "true",
+    auth: {
+      user: process.env.EMAIL_SERVER_USER,
+      pass: process.env.EMAIL_SERVER_PASSWORD,
+    },
+  })
+
+  const itemLabel = params.itemType === 'post' ? 'record' : 'suggestion';
+  const subjectLine =
+    params.outcome === 'approved'
+      ? `Your ${itemLabel} has been published`
+      : `Your ${itemLabel} was not published`;
+
+  const bodyHtml =
+    params.outcome === 'approved'
+      ? `
+        <h1>Your ${itemLabel} has been published</h1>
+        <p>Your ${itemLabel}${params.subjectName ? ` about ${params.subjectName}` : ''} passed language review and is now live on Malakia.</p>
+        ${params.itemUrl ? `<p style="text-align: center; margin: 30px 0;">
+          <a href="${params.itemUrl}" style="background-color: #1C2024; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block;">
+            View it
+          </a>
+        </p>` : ''}
+      `
+      : `
+        <h1>Your ${itemLabel} was not published</h1>
+        <p>Your ${itemLabel}${params.subjectName ? ` about ${params.subjectName}` : ''} did not pass language review.</p>
+        ${params.rejectionReason ? `<p><strong>Reason:</strong> ${params.rejectionReason}</p>` : ''}
+        <p>This is a language check only — it is not a judgment on the substance of what you wrote.</p>
+      `;
+
+  const mailOptions = {
+    from: process.env.EMAIL_FROM || '"Malakia" <noreply@malakia.company>',
+    to: email,
+    subject: subjectLine,
+    text: bodyHtml.replace(/<[^>]+>/g, ''),
+    html: `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">${bodyHtml}</div>`,
+  }
+
+  try {
+    const info = await transporter.sendMail(mailOptions)
+    console.log("✅ Moderation email sent:", info.messageId)
+    return info
+  } catch (error: any) {
+    console.error("❌ Moderation email failed:", error.message)
+    return Promise.resolve()
+  }
+}

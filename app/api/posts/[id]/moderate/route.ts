@@ -3,6 +3,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth';
+import { sendModerationEmail } from '@/lib/email';
 
 export async function PATCH(
   req: NextRequest,
@@ -41,25 +42,37 @@ export async function PATCH(
   const newStatus = decision === 'PUBLISH' ? 'PUBLISHED' : 'REJECTED_LANGUAGE';
 
   const [post] = await prisma.$transaction([
-    prisma.post.update({
-      where: { id },
-      data: {
-        status: newStatus,
-        languageModeratedById: user.id,
-        languageModeratedAt: new Date(),
-        rejectionReason: decision === 'REJECT_LANGUAGE' ? rejectionReason : null,
-      },
-    }),
-    prisma.auditLogEntry.create({
-      data: {
-        actorUserId: user.id,
-        action: decision === 'PUBLISH' ? 'post_approved' : 'post_rejected_language',
-        targetType: 'Post',
-        targetId: id,
-        reason: decision === 'REJECT_LANGUAGE' ? rejectionReason : null,
-      },
-    }),
-  ]);
+  prisma.post.update({
+    where: { id },
+    data: {
+      status: newStatus,
+      languageModeratedById: user.id,
+      languageModeratedAt: new Date(),
+      rejectionReason: decision === 'REJECT_LANGUAGE' ? rejectionReason : null,
+    },
+  }),
+  prisma.auditLogEntry.create({
+    data: {
+      actorUserId: user.id,
+      action: decision === 'PUBLISH' ? 'post_approved' : 'post_rejected_language',
+      targetType: 'Post',
+      targetId: id,
+      reason: decision === 'REJECT_LANGUAGE' ? rejectionReason : null,
+    },
+  }),
+]);
 
-  return NextResponse.json({ post });
+const author = await prisma.user.findUnique({ where: { id: existingPost.authorUserId }, select: { email: true } });
+const subjectRecord = await prisma.subject.findUnique({ where: { id: existingPost.subjectId }, select: { displayName: true } });
+if (author) {
+  sendModerationEmail(author.email, {
+    itemType: 'post',
+    outcome: decision === 'PUBLISH' ? 'approved' : 'rejected',
+    subjectName: subjectRecord?.displayName,
+    rejectionReason: decision === 'REJECT_LANGUAGE' ? rejectionReason : undefined,
+    itemUrl: subjectRecord ? `https://www.malakia.company/subjects/${existingPost.subjectId}` : undefined,
+  }).catch((err) => console.error('Moderation email failed:', err));
+}
+
+return NextResponse.json({ post });
 }
