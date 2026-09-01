@@ -8,6 +8,7 @@ import BalanceScale from '@/components/BalanceScale';
 import { computeDisplayId, labelEntries, computeNetValue, computeLabel, JudgmentEntryLike } from '@/lib/displayId';
 
 const MAX_JUSTIFICATION_LENGTH = 500;
+const MAX_REPORT_REASON_LENGTH = 1000;
 
 interface Behavior {
   label: string;
@@ -35,6 +36,7 @@ interface Post {
   conductEraNote: string | null;
   publicCapacityJustification: string;
   behavior: Behavior;
+  authorUserId: string;
   author: { username: string };
   createdAt: string;
   contests: Contest[];
@@ -101,6 +103,7 @@ interface SubjectRecord {
 
 interface ScaleSuggestion {
   id: string;
+  userId: string;
   createdAt: string;
   user: { username: string };
   entries: JudgmentEntryData[];
@@ -204,9 +207,6 @@ function formatConductDate(post: Post): string {
   return post.conductEraNote ? `${base} (${post.conductEraNote})` : base;
 }
 
-// Renders the negative/positive entry breakdown. If adminEntries is provided,
-// the scale reflects admin baseline + these entries combined; otherwise it's
-// just these entries alone (used for the admin's own judgment display).
 function JudgmentBreakdown({
   entries,
   adminEntries,
@@ -331,21 +331,21 @@ function PairEditor({
         </div>
       ))}
       <button
-  type="button"
-  onClick={addPair}
-  disabled={pairs.length >= MAX_PAIRS_PER_SIDE}
-  style={{
-    fontSize: 12,
-    padding: '6px 12px',
-    background: 'transparent',
-    border: `1px solid ${color}`,
-    color,
-    cursor: pairs.length >= MAX_PAIRS_PER_SIDE ? 'not-allowed' : 'pointer',
-    opacity: pairs.length >= MAX_PAIRS_PER_SIDE ? 0.5 : 1,
-  }}
->
-  + Add {side === 'NEGATIVE' ? 'negative' : 'positive'} pair ({pairs.length}/{MAX_PAIRS_PER_SIDE})
-</button>
+        type="button"
+        onClick={addPair}
+        disabled={pairs.length >= MAX_PAIRS_PER_SIDE}
+        style={{
+          fontSize: 12,
+          padding: '6px 12px',
+          background: 'transparent',
+          border: `1px solid ${color}`,
+          color,
+          cursor: pairs.length >= MAX_PAIRS_PER_SIDE ? 'not-allowed' : 'pointer',
+          opacity: pairs.length >= MAX_PAIRS_PER_SIDE ? 0.5 : 1,
+        }}
+      >
+        + Add {side === 'NEGATIVE' ? 'negative' : 'positive'} pair ({pairs.length}/{MAX_PAIRS_PER_SIDE})
+      </button>
     </div>
   );
 }
@@ -358,6 +358,73 @@ function pairsToEntries(pairs: DraftPair[], side: 'NEGATIVE' | 'POSITIVE') {
       magnitude: p.magnitude ? Number(p.magnitude) : 0,
       justification: p.justification || null,
     }));
+}
+
+function ReportUserControl({
+  userId,
+  username,
+  reportingUserId,
+  setReportingUserId,
+  reportReason,
+  setReportReason,
+  reportSubmitting,
+  reportError,
+  reportedSuccessfully,
+  onSubmit,
+}: {
+  userId: string;
+  username: string;
+  reportingUserId: string | null;
+  setReportingUserId: (id: string | null) => void;
+  reportReason: string;
+  setReportReason: (v: string) => void;
+  reportSubmitting: boolean;
+  reportError: string;
+  reportedSuccessfully: Set<string>;
+  onSubmit: (userId: string) => void;
+}) {
+  if (reportedSuccessfully.has(userId)) {
+    return <span style={{ fontSize: 11, color: '#2F5D50' }}>Reported</span>;
+  }
+
+  if (reportingUserId !== userId) {
+    return (
+      <button
+        onClick={(e) => { e.stopPropagation(); setReportingUserId(userId); }}
+        style={{ fontSize: 11, color: '#7A2E2E', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}
+      >
+        Report {username}
+      </button>
+    );
+  }
+
+  return (
+    <div style={{ marginTop: 6 }} onClick={(e) => e.stopPropagation()}>
+      <textarea
+        placeholder={`Why are you reporting ${username}?`}
+        value={reportReason}
+        maxLength={MAX_REPORT_REASON_LENGTH}
+        onChange={(e) => setReportReason(e.target.value)}
+        style={{ width: '100%', padding: '6px 8px', border: '1px solid #B4B2A9', fontSize: 12, boxSizing: 'border-box' }}
+      />
+      {reportError && <p style={{ color: '#7A2E2E', fontSize: 11, margin: '4px 0' }}>{reportError}</p>}
+      <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
+        <button
+          onClick={() => onSubmit(userId)}
+          disabled={reportSubmitting}
+          style={{ fontSize: 11, padding: '4px 10px', background: '#7A2E2E', color: '#fff', border: 'none', cursor: 'pointer' }}
+        >
+          {reportSubmitting ? 'Submitting…' : 'Submit report'}
+        </button>
+        <button
+          onClick={() => setReportingUserId(null)}
+          style={{ fontSize: 11, padding: '4px 10px', background: 'transparent', color: '#5F5E5A', border: '1px solid #B4B2A9', cursor: 'pointer' }}
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  );
 }
 
 export default function SubjectProfilePage() {
@@ -389,6 +456,12 @@ export default function SubjectProfilePage() {
   const [reactionDrafts, setReactionDrafts] = useState<Record<string, { value: string; body: string }>>({});
   const [reactionSubmitting, setReactionSubmitting] = useState<Record<string, boolean>>({});
   const [reactionErrors, setReactionErrors] = useState<Record<string, string>>({});
+
+  const [reportingUserId, setReportingUserId] = useState<string | null>(null);
+  const [reportReason, setReportReason] = useState('');
+  const [reportSubmitting, setReportSubmitting] = useState(false);
+  const [reportError, setReportError] = useState('');
+  const [reportedSuccessfully, setReportedSuccessfully] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     fetch('/api/auth/me', { credentials: 'include' })
@@ -544,6 +617,33 @@ export default function SubjectProfilePage() {
     }
     const d = await res.json();
     setData((prev) => prev ? { ...prev, subject: { ...prev.subject, verificationStatus: d.subject.verificationStatus } } : prev);
+  }
+
+  async function handleReportUser(reportedUserId: string) {
+    if (!reportReason.trim()) {
+      setReportError('Enter a reason before reporting.');
+      return;
+    }
+    setReportSubmitting(true);
+    setReportError('');
+
+    const res = await fetch('/api/user-reports', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reportedUserId, reason: reportReason }),
+    });
+
+    setReportSubmitting(false);
+
+    if (!res.ok) {
+      const d = await res.json();
+      setReportError(d.error ?? 'Something went wrong.');
+      return;
+    }
+
+    setReportedSuccessfully((prev) => new Set(prev).add(reportedUserId));
+    setReportingUserId(null);
+    setReportReason('');
   }
 
   if (status === 'loading') {
@@ -750,9 +850,27 @@ export default function SubjectProfilePage() {
                   {isSelectedAsReplyTarget && ' — replying to this'}
                 </p>
                 <JudgmentBreakdown entries={s.entries} adminEntries={adminEntries} />
-                <p style={{ fontSize: 12, color: '#5F5E5A', marginTop: 6 }}>
-                  Filed {new Date(s.createdAt).toLocaleDateString('en-GB', { year: 'numeric', month: 'short', day: 'numeric' })}
-                </p>
+                <div style={{ marginTop: 6 }} onClick={(e) => e.stopPropagation()}>
+                  <p style={{ fontSize: 12, color: '#5F5E5A', margin: 0, display: 'inline' }}>
+                    Filed {new Date(s.createdAt).toLocaleDateString('en-GB', { year: 'numeric', month: 'short', day: 'numeric' })}
+                  </p>
+                  {isAuthenticated && (
+                    <span style={{ marginLeft: 8 }}>
+                      <ReportUserControl
+                        userId={s.userId}
+                        username={s.user.username}
+                        reportingUserId={reportingUserId}
+                        setReportingUserId={setReportingUserId}
+                        reportReason={reportReason}
+                        setReportReason={setReportReason}
+                        reportSubmitting={reportSubmitting}
+                        reportError={reportError}
+                        reportedSuccessfully={reportedSuccessfully}
+                        onSubmit={handleReportUser}
+                      />
+                    </span>
+                  )}
+                </div>
 
                 {reactions.map((r) => (
                   <div key={r.id} style={{ marginLeft: 20, marginTop: 10, paddingLeft: 12, borderLeft: '2px solid #B4B2A9' }} onClick={(e) => e.stopPropagation()}>
@@ -867,7 +985,25 @@ export default function SubjectProfilePage() {
                   View supporting evidence
                 </a>
               )}
-              <p style={{ fontSize: 12, color: '#5F5E5A', marginTop: 10 }}>Filed by {post.author.username}</p>
+              <div style={{ marginTop: 10 }} onClick={(e) => e.stopPropagation()}>
+                <p style={{ fontSize: 12, color: '#5F5E5A', margin: 0, display: 'inline' }}>Filed by {post.author.username}</p>
+                {isAuthenticated && (
+                  <span style={{ marginLeft: 8 }}>
+                    <ReportUserControl
+                      userId={post.authorUserId}
+                      username={post.author.username}
+                      reportingUserId={reportingUserId}
+                      setReportingUserId={setReportingUserId}
+                      reportReason={reportReason}
+                      setReportReason={setReportReason}
+                      reportSubmitting={reportSubmitting}
+                      reportError={reportError}
+                      reportedSuccessfully={reportedSuccessfully}
+                      onSubmit={handleReportUser}
+                    />
+                  </span>
+                )}
+              </div>
 
               {post.contests.length > 0 && (
                 <div style={{ marginTop: 12, borderTop: '1px solid #E8E4DA', paddingTop: 12 }}>
