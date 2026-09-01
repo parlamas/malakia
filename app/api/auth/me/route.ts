@@ -20,23 +20,25 @@ export async function GET() {
     ) as { sub: string; tv: number }
 
     const user = await prisma.user.findUnique({
-      where: { id: payload.sub },
-      select: {
-        tokenVersion: true,
-        username: true,
-        isAdmin: true,
-      },
-    })
+  where: { id: payload.sub },
+  select: {
+    tokenVersion: true,
+    username: true,
+    isAdmin: true,
+    image: true,
+  },
+})
 
     if (!user || user.tokenVersion !== payload.tv) {
       return NextResponse.json({ authenticated: false })
     }
 
-    return NextResponse.json({
-      authenticated: true,
-      username: user.username,
-      isAdmin: user.isAdmin,
-    })
+  return NextResponse.json({
+  authenticated: true,
+  username: user.username,
+  isAdmin: user.isAdmin,
+  image: user.image,
+})
   } catch {
     return NextResponse.json({ authenticated: false })
   }
