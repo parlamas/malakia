@@ -514,6 +514,11 @@ export default function SubjectProfilePage() {
   const [reportError, setReportError] = useState('');
   const [reportedSuccessfully, setReportedSuccessfully] = useState<Set<string>>(new Set());
 
+  const [editingPostId, setEditingPostId] = useState<string | null>(null);
+  const [editDrafts, setEditDrafts] = useState<Record<string, { behaviorLabel: string; narrative: string; publicCapacityJustification: string; evidenceUrl: string }>>({});
+  const [editSaving, setEditSaving] = useState<Record<string, boolean>>({});
+  const [editError, setEditError] = useState<Record<string, string>>({});
+
   useEffect(() => {
     fetch('/api/auth/me', { credentials: 'include' })
       .then((r) => r.json())
@@ -712,6 +717,50 @@ export default function SubjectProfilePage() {
     setReportedSuccessfully((prev) => new Set(prev).add(reportedUserId));
     setReportingUserId(null);
     setReportReason('');
+  }
+
+  function startEditingPost(post: Post) {
+    setEditingPostId(post.id);
+    setEditDrafts((prev) => ({
+      ...prev,
+      [post.id]: {
+        behaviorLabel: post.behaviorLabel,
+        narrative: post.narrative,
+        publicCapacityJustification: post.publicCapacityJustification,
+        evidenceUrl: post.evidenceUrl ?? '',
+      },
+    }));
+  }
+
+  async function savePostEdit(postId: string) {
+    const draft = editDrafts[postId];
+    if (!draft) return;
+    setEditSaving((prev) => ({ ...prev, [postId]: true }));
+    setEditError((prev) => ({ ...prev, [postId]: '' }));
+
+    const res = await fetch(`/api/posts/${postId}/edit`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(draft),
+    });
+
+    setEditSaving((prev) => ({ ...prev, [postId]: false }));
+
+    if (!res.ok) {
+      const d = await res.json();
+      setEditError((prev) => ({ ...prev, [postId]: d.error ?? 'Something went wrong.' }));
+      return;
+    }
+
+    const d = await res.json();
+    setData((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        posts: prev.posts.map((p) => (p.id === postId ? { ...p, ...d.post } : p)),
+      };
+    });
+    setEditingPostId(null);
   }
 
   if (status === 'loading') {
@@ -1060,19 +1109,76 @@ export default function SubjectProfilePage() {
                 {postDisplayId}
                 {isSelectedAsReplyTarget && ' — replying to this'}
               </p>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                <span style={{ color, fontFamily: 'Georgia, serif', fontSize: 15 }}>{post.behaviorLabel}</span>
-                <span style={monoLabel}>{formatConductDate(post)}</span>
-              </div>
-              <p style={{ marginTop: 10, marginBottom: 10, lineHeight: 1.6, color: '#1C2024' }}>{post.narrative}</p>
-              <p style={{ fontSize: 13, color: '#5F5E5A', marginBottom: 8 }}>
-                Justification: {post.publicCapacityJustification}
-              </p>
-              {post.evidenceUrl && (
-                <a href={post.evidenceUrl} target="_blank" rel="noreferrer" style={{ fontSize: 13, color: '#1C2024' }} onClick={(e) => e.stopPropagation()}>
-                  View supporting evidence
-                </a>
+
+              {editingPostId === post.id ? (
+                <div onClick={(e) => e.stopPropagation()} style={{ marginTop: 10 }}>
+                  <label style={{ fontSize: 11, color: '#5F5E5A', display: 'block', marginBottom: 4 }}>Behavior</label>
+                  <input
+                    value={editDrafts[post.id]?.behaviorLabel ?? ''}
+                    onChange={(e) => setEditDrafts((prev) => ({ ...prev, [post.id]: { ...prev[post.id], behaviorLabel: e.target.value } }))}
+                    style={{ ...inputStyle, marginBottom: 8 }}
+                  />
+                  <label style={{ fontSize: 11, color: '#5F5E5A', display: 'block', marginBottom: 4 }}>Narrative</label>
+                  <textarea
+                    value={editDrafts[post.id]?.narrative ?? ''}
+                    onChange={(e) => setEditDrafts((prev) => ({ ...prev, [post.id]: { ...prev[post.id], narrative: e.target.value } }))}
+                    style={{ ...inputStyle, height: 90, resize: 'vertical', marginBottom: 8 }}
+                  />
+                  <label style={{ fontSize: 11, color: '#5F5E5A', display: 'block', marginBottom: 4 }}>Justification</label>
+                  <textarea
+                    value={editDrafts[post.id]?.publicCapacityJustification ?? ''}
+                    onChange={(e) => setEditDrafts((prev) => ({ ...prev, [post.id]: { ...prev[post.id], publicCapacityJustification: e.target.value } }))}
+                    style={{ ...inputStyle, height: 60, resize: 'vertical', marginBottom: 8 }}
+                  />
+                  <label style={{ fontSize: 11, color: '#5F5E5A', display: 'block', marginBottom: 4 }}>Evidence URL</label>
+                  <input
+                    value={editDrafts[post.id]?.evidenceUrl ?? ''}
+                    onChange={(e) => setEditDrafts((prev) => ({ ...prev, [post.id]: { ...prev[post.id], evidenceUrl: e.target.value } }))}
+                    style={{ ...inputStyle, marginBottom: 8 }}
+                  />
+                  {editError[post.id] && <p style={{ color: '#7A2E2E', fontSize: 12, marginBottom: 8 }}>{editError[post.id]}</p>}
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button
+                      onClick={() => savePostEdit(post.id)}
+                      disabled={editSaving[post.id]}
+                      style={{ padding: '6px 14px', background: '#1C2024', color: '#fff', border: 'none', fontSize: 12, cursor: 'pointer' }}
+                    >
+                      {editSaving[post.id] ? 'Saving…' : 'Save edit'}
+                    </button>
+                    <button
+                      onClick={() => setEditingPostId(null)}
+                      style={{ padding: '6px 14px', background: 'transparent', color: '#5F5E5A', border: '1px solid #B4B2A9', fontSize: 12, cursor: 'pointer' }}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                    <span style={{ color, fontFamily: 'Georgia, serif', fontSize: 15 }}>{post.behaviorLabel}</span>
+                    <span style={monoLabel}>{formatConductDate(post)}</span>
+                  </div>
+                  <p style={{ marginTop: 10, marginBottom: 10, lineHeight: 1.6, color: '#1C2024' }}>{post.narrative}</p>
+                  <p style={{ fontSize: 13, color: '#5F5E5A', marginBottom: 8 }}>
+                    Justification: {post.publicCapacityJustification}
+                  </p>
+                  {post.evidenceUrl && (
+                    <a href={post.evidenceUrl} target="_blank" rel="noreferrer" style={{ fontSize: 13, color: '#1C2024' }} onClick={(e) => e.stopPropagation()}>
+                      View supporting evidence
+                    </a>
+                  )}
+                  {isAdmin && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); startEditingPost(post); }}
+                      style={{ display: 'block', marginTop: 8, fontSize: 11, color: '#1D4ED8', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}
+                    >
+                      Edit (admin)
+                    </button>
+                  )}
+                </>
               )}
+
               <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 8 }} onClick={(e) => e.stopPropagation()}>
                 <Avatar username={post.author.username} image={post.author.image} size={18} />
                 <p style={{ fontSize: 12, color: '#5F5E5A', margin: 0, display: 'inline' }}>Filed by {post.author.username}</p>
