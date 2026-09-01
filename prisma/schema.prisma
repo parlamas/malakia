@@ -161,6 +161,13 @@ enum JudgmentSide {
   ZERO // used only when a judgment is submitted with nothing filled in on either side
 }
 
+enum ExtremeBadge {
+  UNFORGIVABLE
+  IMMORTAL
+  HUBRIS
+  CELESTIAL
+}
+
 model Subject {
   id                  String              @id @default(cuid())
   subjectType         SubjectType
@@ -208,8 +215,9 @@ model Subject {
   roleEvidenceUrl     String?
   photoUrl            String?
   verificationStatus  VerificationStatus  @default(UNVERIFIED)
+extremeBadge        ExtremeBadge?
 
-  adminJudgment       AdminJudgment?
+adminJudgment       AdminJudgment?
 
   posts               Post[]
   scaleSuggestions    ScaleSuggestion[]

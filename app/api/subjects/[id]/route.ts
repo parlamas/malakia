@@ -67,6 +67,7 @@ export async function GET(
     deathUnknown: subject.deathUnknown,
     photoUrl: subject.photoUrl,
     verificationStatus: subject.verificationStatus,
+    extremeBadge: subject.extremeBadge,
     adminJudgment: subject.adminJudgment,
   };
 
