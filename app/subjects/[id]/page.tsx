@@ -10,11 +10,6 @@ import { computeDisplayId, labelEntries, computeNetValue, computeLabel, Judgment
 const MAX_JUSTIFICATION_LENGTH = 500;
 const MAX_REPORT_REASON_LENGTH = 1000;
 
-interface Behavior {
-  label: string;
-  description: string;
-}
-
 interface Contest {
   id: string;
   disputeType: string;
@@ -26,6 +21,7 @@ interface Contest {
 interface Post {
   id: string;
   axis: 'CALLOUS' | 'CIVIC';
+  behaviorLabel: string;
   narrative: string;
   evidenceUrl: string | null;
   conductYear: number;
@@ -35,7 +31,6 @@ interface Post {
   conductUnknown: boolean;
   conductEraNote: string | null;
   publicCapacityJustification: string;
-  behavior: Behavior;
   authorUserId: string;
   author: { username: string; image: string | null };
   createdAt: string;
@@ -92,6 +87,7 @@ interface SubjectData {
   deathUnknown: boolean;
   photoUrl: string | null;
   verificationStatus: 'UNVERIFIED' | 'ADMIN_CONFIRMED' | 'DISPUTED';
+  extremeBadge: 'UNFORGIVABLE' | 'IMMORTAL' | 'HUBRIS' | 'CELESTIAL' | null;
   adminJudgment: AdminJudgmentData | null;
 }
 
@@ -457,6 +453,28 @@ function ReportUserControl({
   );
 }
 
+const EXTREME_BADGE_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
+  UNFORGIVABLE: { label: 'UNFORGIVABLE', color: '#fff', bg: '#4A0E0E' },
+  HUBRIS: { label: 'HUBRIS', color: '#fff', bg: '#8B4513' },
+  IMMORTAL: { label: 'IMMORTAL', color: '#fff', bg: '#1B3A5C' },
+  CELESTIAL: { label: 'CELESTIAL', color: '#1C2024', bg: '#D4AF37' },
+};
+
+function extremeBadgeStyle(config: { color: string; bg: string }): React.CSSProperties {
+  return {
+    display: 'inline-block',
+    fontSize: 14,
+    fontWeight: 'bold',
+    fontFamily: 'Georgia, serif',
+    letterSpacing: '0.06em',
+    color: config.color,
+    background: config.bg,
+    padding: '8px 20px',
+    marginTop: 10,
+    border: '2px solid rgba(0,0,0,0.15)',
+  };
+}
+
 export default function SubjectProfilePage() {
   const { id } = useParams<{ id: string }>();
   const [data, setData] = useState<SubjectRecord | null>(null);
@@ -481,6 +499,9 @@ export default function SubjectProfilePage() {
 
   const [verifyStatus, setVerifyStatus] = useState<'idle' | 'saving'>('idle');
   const [verifyError, setVerifyError] = useState('');
+
+  const [badgeStatus, setBadgeStatus] = useState<'idle' | 'saving'>('idle');
+  const [badgeError, setBadgeError] = useState('');
 
   const [reactionsBySuggestion, setReactionsBySuggestion] = useState<Record<string, ReactionItem[]>>({});
   const [reactionDrafts, setReactionDrafts] = useState<Record<string, { body: string }>>({});
@@ -648,6 +669,24 @@ export default function SubjectProfilePage() {
     setData((prev) => prev ? { ...prev, subject: { ...prev.subject, verificationStatus: d.subject.verificationStatus } } : prev);
   }
 
+  async function handleSetBadge(badge: 'UNFORGIVABLE' | 'IMMORTAL' | 'HUBRIS' | 'CELESTIAL' | null) {
+    setBadgeError('');
+    setBadgeStatus('saving');
+    const res = await fetch(`/api/subjects/${id}/badge`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ extremeBadge: badge }),
+    });
+    setBadgeStatus('idle');
+    if (!res.ok) {
+      const d = await res.json();
+      setBadgeError(d.error ?? 'Something went wrong.');
+      return;
+    }
+    const d = await res.json();
+    setData((prev) => prev ? { ...prev, subject: { ...prev.subject, extremeBadge: d.subject.extremeBadge } } : prev);
+  }
+
   async function handleReportUser(reportedUserId: string) {
     if (!reportReason.trim()) {
       setReportError('Enter a reason before reporting.');
@@ -757,6 +796,14 @@ export default function SubjectProfilePage() {
           <span style={badgeStyle('#7A2E2E', '#F3E8E6')}>Disputed</span>
         )}
 
+        {subject.extremeBadge && (
+          <div>
+            <span style={extremeBadgeStyle(EXTREME_BADGE_CONFIG[subject.extremeBadge])}>
+              {EXTREME_BADGE_CONFIG[subject.extremeBadge].label}
+            </span>
+          </div>
+        )}
+
         {isAdmin && (
           <div style={{ marginTop: 10, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
             <button
@@ -781,6 +828,30 @@ export default function SubjectProfilePage() {
               Reset to unverified
             </button>
             {verifyError && <span style={{ color: '#7A2E2E', fontSize: 12 }}>{verifyError}</span>}
+          </div>
+        )}
+
+        {isAdmin && (
+          <div style={{ marginTop: 10, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 12, color: '#5F5E5A' }}>Extreme badge:</span>
+            {(['UNFORGIVABLE', 'HUBRIS', 'IMMORTAL', 'CELESTIAL'] as const).map((b) => (
+              <button
+                key={b}
+                onClick={() => handleSetBadge(subject.extremeBadge === b ? null : b)}
+                disabled={badgeStatus === 'saving'}
+                style={{
+                  padding: '4px 12px',
+                  background: subject.extremeBadge === b ? EXTREME_BADGE_CONFIG[b].bg : 'transparent',
+                  color: subject.extremeBadge === b ? EXTREME_BADGE_CONFIG[b].color : '#5F5E5A',
+                  border: `1px solid ${EXTREME_BADGE_CONFIG[b].bg}`,
+                  fontSize: 11,
+                  cursor: 'pointer',
+                }}
+              >
+                {b}
+              </button>
+            ))}
+            {badgeError && <span style={{ color: '#7A2E2E', fontSize: 12 }}>{badgeError}</span>}
           </div>
         )}
 
@@ -990,7 +1061,7 @@ export default function SubjectProfilePage() {
                 {isSelectedAsReplyTarget && ' — replying to this'}
               </p>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                <span style={{ color, fontFamily: 'Georgia, serif', fontSize: 15 }}>{post.behavior.label}</span>
+                <span style={{ color, fontFamily: 'Georgia, serif', fontSize: 15 }}>{post.behaviorLabel}</span>
                 <span style={monoLabel}>{formatConductDate(post)}</span>
               </div>
               <p style={{ marginTop: 10, marginBottom: 10, lineHeight: 1.6, color: '#1C2024' }}>{post.narrative}</p>
