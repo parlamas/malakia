@@ -69,7 +69,7 @@ export async function GET(req: NextRequest) {
       ...(postId ? { postId } : {}),
       ...(contestId ? { contestId } : {}),
     },
-    include: { user: { select: { id: true, username: true } } },
+    include: { user: { select: { id: true, username: true, image: true } } },
     orderBy: { createdAt: 'asc' },
   });
 

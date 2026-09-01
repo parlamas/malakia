@@ -142,7 +142,7 @@ export async function GET(req: NextRequest) {
   const suggestions = await prisma.scaleSuggestion.findMany({
   where: { subjectId, status: 'PUBLISHED' },
   include: {
-    user: { select: { id: true, username: true } },
+    user: { select: { id: true, username: true, image: true } },
     entries: { orderBy: { order: 'asc' } },
     replyTo: { include: { user: { select: { id: true, username: true } } } },
     replyToPost: { include: { author: { select: { username: true } } } },
