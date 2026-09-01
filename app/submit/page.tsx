@@ -9,12 +9,6 @@ import FlexibleDateSelect, { FlexibleDate } from '@/components/FlexibleDateSelec
 type Axis = 'CALLOUS' | 'CIVIC';
 type SubjectType = 'PERSON' | 'INSTITUTION' | 'ORGANIZATION' | 'BUSINESS' | 'NATION' | 'REGIME' | 'ADMINISTRATION' | 'PRACTICE' | 'TRADITION' | 'IDEOLOGY';
 
-interface Behavior {
-  id: string;
-  label: string;
-  description: string;
-}
-
 interface SubjectMatch {
   id: string;
   subjectType: SubjectType;
@@ -54,8 +48,7 @@ export default function SubmitPage() {
   const [authStatus, setAuthStatus] = useState<'checking' | 'authenticated' | 'unauthenticated'>('checking');
 
   const [axis, setAxis] = useState<Axis>('CALLOUS');
-  const [behaviors, setBehaviors] = useState<Behavior[]>([]);
-  const [behaviorId, setBehaviorId] = useState('');
+  const [behaviorLabel, setBehaviorLabel] = useState('');
   const [narrative, setNarrative] = useState('');
   const [evidenceUrl, setEvidenceUrl] = useState('');
   const [conductDate, setConductDate] = useState<FlexibleDate>(emptyFlexDate);
@@ -103,15 +96,6 @@ export default function SubmitPage() {
       .then((data) => setAuthStatus(data.authenticated ? 'authenticated' : 'unauthenticated'))
       .catch(() => setAuthStatus('unauthenticated'));
   }, []);
-
-  useEffect(() => {
-    fetch(`/api/behaviors?axis=${axis}`)
-      .then((r) => r.json())
-      .then((data) => {
-        setBehaviors(data.behaviors ?? []);
-        setBehaviorId('');
-      });
-  }, [axis]);
 
   useEffect(() => {
     if (subjectQuery.length < 2) {
@@ -198,7 +182,7 @@ export default function SubmitPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         axis,
-        behaviorId,
+        behaviorLabel,
         narrative,
         evidenceUrl: evidenceUrl || null,
         conductYear: conductDate.year,
@@ -300,11 +284,11 @@ export default function SubmitPage() {
           File a record
         </h1>
         <p style={{ color: '#5F5E5A', marginBottom: 8, lineHeight: 1.6 }}>
-  Records may concern persons, institutions, organizations, businesses, nations, regimes, administrations, practices, traditions, or ideologies.
-</p>
-<p style={{ color: '#5F5E5A', fontSize: 12, marginBottom: 32 }}>
-  Fields marked * are required.
-</p>
+          Records may concern persons, institutions, organizations, businesses, nations, regimes, administrations, practices, traditions, or ideologies.
+        </p>
+        <p style={{ color: '#5F5E5A', fontSize: 12, marginBottom: 32 }}>
+          Fields marked * are required.
+        </p>
 
         <div style={{ display: 'flex', marginBottom: 32 }}>
           {(['CALLOUS', 'CIVIC'] as Axis[]).map((a) => {
@@ -405,15 +389,15 @@ export default function SubmitPage() {
                     </p>
 
                     <label style={dateLabel}>
-  Name *
-  <input
-    placeholder="Full name or official name"
-    value={newSubject.displayName}
-    onChange={(e) => setNewSubject({ ...newSubject, displayName: e.target.value })}
-    style={{ ...inputStyle, marginTop: 4 }}
-    required
-  />
-</label>
+                      Name *
+                      <input
+                        placeholder="Full name or official name"
+                        value={newSubject.displayName}
+                        onChange={(e) => setNewSubject({ ...newSubject, displayName: e.target.value })}
+                        style={{ ...inputStyle, marginTop: 4 }}
+                        required
+                      />
+                    </label>
 
                     <label style={dateLabel}>
                       Short description (optional) — helps a reader who doesn't know who or what this is
@@ -553,19 +537,21 @@ export default function SubmitPage() {
             </p>
 
             <label style={dateLabel}>
-  Behavior * — pick the category that best fits what happened
-              <select value={behaviorId} onChange={(e) => setBehaviorId(e.target.value)} style={{ ...inputStyle, marginTop: 4 }} required>
-                <option value="">Select the behavior that fits</option>
-                {behaviors.map((b) => (
-                  <option key={b.id} value={b.id}>{b.label}</option>
-                ))}
-              </select>
+              Behavior * — describe what happened in a few words
+              <input
+                placeholder="e.g. Organized systematic persecution, or Advanced human knowledge through research"
+                value={behaviorLabel}
+                onChange={(e) => setBehaviorLabel(e.target.value)}
+                maxLength={200}
+                style={{ ...inputStyle, marginTop: 4 }}
+                required
+              />
             </label>
 
             <label style={dateLabel}>
-  Date the conduct occurred *
-  <FlexibleDateSelect value={conductDate} onChange={setConductDate} yearRequired />
-</label>
+              Date the conduct occurred *
+              <FlexibleDateSelect value={conductDate} onChange={setConductDate} yearRequired />
+            </label>
 
             <label style={dateLabel}>
               Note on dating (optional) — e.g. "circa", "shortly before his trial"
@@ -577,7 +563,7 @@ export default function SubmitPage() {
             </label>
 
             <label style={dateLabel}>
-  What happened, specifically *
+              What happened, specifically *
               <textarea
                 placeholder="Describe the incident or conduct in your own words"
                 value={narrative}
