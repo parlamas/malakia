@@ -22,10 +22,10 @@ export default function Home() {
           margin: '10px 0 16px',
           lineHeight: 1.3,
         }}>
-          A public record for how public figures actually behave.
+          A public ethics barometer for people, institutions, and ideas.
         </h1>
         <p style={{ color: '#5F5E5A', fontFamily: 'Inter, system-ui, sans-serif', fontSize: 16, lineHeight: 1.6, maxWidth: 560, margin: '0 auto' }}>
-          Citizens file specific, dated conduct by elected officials, appointed officials, journalists, and government members — scoped to their time in that role, nothing else.
+          Citizens file specific, dated conduct by persons, institutions, organizations, businesses, nations, regimes, administrations, practices, traditions, and ideologies — weighed as negatives and positives that net out to a single verdict: civic-minded, callous, or controversial.
         </p>
       </div>
 
@@ -45,8 +45,7 @@ export default function Home() {
 
       <div style={{ maxWidth: 780, margin: '0 auto', padding: '3rem 1.5rem', textAlign: 'center', fontFamily: 'Inter, system-ui, sans-serif' }}>
         <p style={{ color: '#5F5E5A', fontSize: 14, lineHeight: 1.6 }}>
-          Every record is timestamped, tied to the subject's public role at the time, and open to contest by other users.
-          Only language is moderated — not the truth of what's filed. See the{' '}
+          Every record carries a permanent, timestamped ID, is open to reply and reaction from other users, and can be reported for unacceptable language. Only language is moderated — not the truth of what's filed. See the{' '}
           <Link href="/quotes" style={{ color: '#1C2024', textDecoration: 'underline' }}>
             classic malakia quotes
           </Link>{' '}
