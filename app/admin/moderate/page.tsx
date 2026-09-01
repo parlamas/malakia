@@ -9,22 +9,66 @@ interface PendingPost {
   axis: 'CALLOUS' | 'CIVIC';
   narrative: string;
   evidenceUrl: string | null;
-  conductDate: string;
+  conductYear: number;
+  conductMonth: number | null;
+  conductDay: number | null;
+  conductEraNote: string | null;
   publicCapacityJustification: string;
   behavior: { label: string };
   author: { username: string };
-  subject: { displayName: string; roleTitle: string; country: string };
+  subject: { displayName: string; roleTitle: string | null; associatedContext: string | null };
 }
 
-function formatDate(d: string) {
-  return new Date(d).toLocaleDateString('en-GB', { year: 'numeric', month: 'short', day: 'numeric' });
+interface JudgmentEntry {
+  side: 'NEGATIVE' | 'POSITIVE' | 'ZERO';
+  magnitude: number;
+  justification: string | null;
+}
+
+interface PendingSuggestion {
+  id: string;
+  createdAt: string;
+  user: { username: string };
+  subject: { id: string; displayName: string };
+  entries: JudgmentEntry[];
+}
+
+interface PendingUserReport {
+  id: string;
+  reason: string;
+  createdAt: string;
+  reporter: { username: string };
+  reportedUser: { id: string; username: string };
+}
+
+const MONTH_NAMES = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
+];
+
+function formatConductDate(post: PendingPost): string {
+  const era = post.conductYear < 0 ? 'BCE' : 'CE';
+  const absYear = Math.abs(post.conductYear);
+  let base: string;
+  if (post.conductMonth) {
+    const monthName = MONTH_NAMES[post.conductMonth - 1] ?? '';
+    base = post.conductDay ? `${post.conductDay} ${monthName} ${absYear} ${era}` : `${monthName} ${absYear} ${era}`;
+  } else {
+    base = `${absYear} ${era}`;
+  }
+  return post.conductEraNote ? `${base} (${post.conductEraNote})` : base;
 }
 
 export default function ModerationQueuePage() {
   const [pending, setPending] = useState<PendingPost[]>([]);
+  const [pendingSuggestions, setPendingSuggestions] = useState<PendingSuggestion[]>([]);
+  const [pendingUserReports, setPendingUserReports] = useState<PendingUserReport[]>([]);
   const [status, setStatus] = useState<'loading' | 'ready' | 'forbidden'>('loading');
   const [rejectingId, setRejectingId] = useState<string | null>(null);
   const [rejectionReason, setRejectionReason] = useState('');
+  const [rejectingSuggestionId, setRejectingSuggestionId] = useState<string | null>(null);
+  const [suggestionRejectionReason, setSuggestionRejectionReason] = useState('');
+  const [reportResolutionNotes, setReportResolutionNotes] = useState<Record<string, string>>({});
   const [actionError, setActionError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -40,6 +84,19 @@ export default function ModerationQueuePage() {
     }
     const data = await res.json();
     setPending(data.pending ?? []);
+
+    const suggestionsRes = await fetch('/api/scale-suggestions/pending');
+    if (suggestionsRes.ok) {
+      const suggestionsData = await suggestionsRes.json();
+      setPendingSuggestions(suggestionsData.pending ?? []);
+    }
+
+    const reportsRes = await fetch('/api/user-reports');
+    if (reportsRes.ok) {
+      const reportsData = await reportsRes.json();
+      setPendingUserReports(reportsData.reports ?? []);
+    }
+
     setStatus('ready');
   }
 
@@ -79,6 +136,57 @@ export default function ModerationQueuePage() {
     setRejectionReason('');
   }
 
+  async function approveSuggestion(id: string) {
+    setActionError(null);
+    const res = await fetch(`/api/scale-suggestions/${id}/moderate`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ decision: 'PUBLISH' }),
+    });
+    if (!res.ok) {
+      const data = await res.json();
+      setActionError(data.error ?? 'Could not approve.');
+      return;
+    }
+    setPendingSuggestions((p) => p.filter((s) => s.id !== id));
+  }
+
+  async function rejectSuggestion(id: string) {
+    if (!suggestionRejectionReason.trim()) {
+      setActionError('Enter a reason before rejecting.');
+      return;
+    }
+    setActionError(null);
+    const res = await fetch(`/api/scale-suggestions/${id}/moderate`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ decision: 'REJECT_LANGUAGE', rejectionReason: suggestionRejectionReason }),
+    });
+    if (!res.ok) {
+      const data = await res.json();
+      setActionError(data.error ?? 'Could not reject.');
+      return;
+    }
+    setPendingSuggestions((p) => p.filter((s) => s.id !== id));
+    setRejectingSuggestionId(null);
+    setSuggestionRejectionReason('');
+  }
+
+  async function resolveUserReport(id: string, resolution: 'ACTIONED' | 'DISMISSED') {
+    setActionError(null);
+    const res = await fetch(`/api/user-reports/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: resolution, resolutionNote: reportResolutionNotes[id] || null }),
+    });
+    if (!res.ok) {
+      const data = await res.json();
+      setActionError(data.error ?? 'Could not resolve report.');
+      return;
+    }
+    setPendingUserReports((p) => p.filter((r) => r.id !== id));
+  }
+
   if (status === 'loading') {
     return (
       <main style={pageStyle}>
@@ -110,8 +218,10 @@ export default function ModerationQueuePage() {
           <p style={{ color: '#7A2E2E', fontSize: 14, marginBottom: 16 }}>{actionError}</p>
         )}
 
+        <h2 style={{ fontFamily: 'Georgia, serif', fontSize: 18, color: '#1C2024', marginBottom: 12 }}>Pending posts</h2>
+
         {pending.length === 0 && (
-          <p style={{ color: '#5F5E5A' }}>Nothing waiting for review.</p>
+          <p style={{ color: '#5F5E5A', marginBottom: 24 }}>Nothing waiting for review.</p>
         )}
 
         {pending.map((post) => {
@@ -120,17 +230,19 @@ export default function ModerationQueuePage() {
             <div key={post.id} style={{ border: '1px solid #B4B2A9', background: '#fff', padding: '18px 20px', marginBottom: 16 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
                 <span style={{ color, fontFamily: 'Georgia, serif', fontSize: 15 }}>{post.behavior.label}</span>
-                <span style={monoLabel}>{formatDate(post.conductDate)}</span>
+                <span style={monoLabel}>{formatConductDate(post)}</span>
               </div>
 
               <p style={{ fontSize: 13, color: '#5F5E5A', marginTop: 6 }}>
-                Re: {post.subject.displayName} — {post.subject.roleTitle}, {post.subject.country}
+                Re: {post.subject.displayName}
+                {post.subject.roleTitle ? ` — ${post.subject.roleTitle}` : ''}
+                {post.subject.associatedContext ? `, ${post.subject.associatedContext}` : ''}
               </p>
 
               <p style={{ marginTop: 10, marginBottom: 10, lineHeight: 1.6, color: '#1C2024' }}>{post.narrative}</p>
 
               <p style={{ fontSize: 13, color: '#5F5E5A' }}>
-                Public-capacity justification: {post.publicCapacityJustification}
+                Justification: {post.publicCapacityJustification}
               </p>
 
               {post.evidenceUrl && (
@@ -164,6 +276,86 @@ export default function ModerationQueuePage() {
             </div>
           );
         })}
+
+        <h2 style={{ fontFamily: 'Georgia, serif', fontSize: 18, color: '#1C2024', margin: '32px 0 12px' }}>Pending suggestions</h2>
+
+        {pendingSuggestions.length === 0 && (
+          <p style={{ color: '#5F5E5A', marginBottom: 24 }}>Nothing waiting for review.</p>
+        )}
+
+        {pendingSuggestions.map((s) => {
+          const negatives = s.entries.filter((e) => e.side === 'NEGATIVE');
+          const positives = s.entries.filter((e) => e.side === 'POSITIVE');
+          return (
+            <div key={s.id} style={{ border: '1px solid #B4B2A9', background: '#fff', padding: '18px 20px', marginBottom: 16 }}>
+              <p style={{ fontSize: 13, color: '#5F5E5A' }}>
+                Re: {s.subject.displayName} — by {s.user.username}
+              </p>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginTop: 10 }}>
+                <div>
+                  <p style={{ fontSize: 11, color: '#7A2E2E', fontWeight: 'bold' }}>NEGATIVE</p>
+                  {negatives.length === 0 && <p style={{ fontSize: 12, color: '#5F5E5A' }}>None</p>}
+                  {negatives.map((e, i) => (
+                    <p key={i} style={{ fontSize: 12, color: '#1C2024' }}>{e.magnitude} — {e.justification ?? '(no justification)'}</p>
+                  ))}
+                </div>
+                <div>
+                  <p style={{ fontSize: 11, color: '#2F5D50', fontWeight: 'bold' }}>POSITIVE</p>
+                  {positives.length === 0 && <p style={{ fontSize: 12, color: '#5F5E5A' }}>None</p>}
+                  {positives.map((e, i) => (
+                    <p key={i} style={{ fontSize: 12, color: '#1C2024' }}>{e.magnitude} — {e.justification ?? '(no justification)'}</p>
+                  ))}
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: 10, marginTop: 12 }}>
+                <button onClick={() => approveSuggestion(s.id)} style={approveBtn}>Publish</button>
+                <button onClick={() => setRejectingSuggestionId(rejectingSuggestionId === s.id ? null : s.id)} style={rejectBtn}>
+                  Reject for language
+                </button>
+              </div>
+
+              {rejectingSuggestionId === s.id && (
+                <div style={{ marginTop: 12 }}>
+                  <textarea
+                    placeholder="Reason for rejection"
+                    value={suggestionRejectionReason}
+                    onChange={(e) => setSuggestionRejectionReason(e.target.value)}
+                    style={{ width: '100%', padding: '8px 10px', border: '1px solid #B4B2A9', fontSize: 13, boxSizing: 'border-box' }}
+                  />
+                  <button onClick={() => rejectSuggestion(s.id)} style={{ ...rejectBtn, marginTop: 8 }}>
+                    Confirm rejection
+                  </button>
+                </div>
+              )}
+            </div>
+          );
+        })}
+
+        <h2 style={{ fontFamily: 'Georgia, serif', fontSize: 18, color: '#1C2024', margin: '32px 0 12px' }}>Pending user reports</h2>
+
+        {pendingUserReports.length === 0 && (
+          <p style={{ color: '#5F5E5A' }}>Nothing waiting for review.</p>
+        )}
+
+        {pendingUserReports.map((r) => (
+          <div key={r.id} style={{ border: '1px solid #B4B2A9', background: '#fff', padding: '18px 20px', marginBottom: 16 }}>
+            <p style={{ fontSize: 13, color: '#5F5E5A' }}>
+              {r.reporter.username} reported {r.reportedUser.username}
+            </p>
+            <p style={{ marginTop: 8, color: '#1C2024' }}>{r.reason}</p>
+            <textarea
+              placeholder="Resolution note (optional)"
+              value={reportResolutionNotes[r.id] || ''}
+              onChange={(e) => setReportResolutionNotes((prev) => ({ ...prev, [r.id]: e.target.value }))}
+              style={{ width: '100%', padding: '8px 10px', border: '1px solid #B4B2A9', fontSize: 13, boxSizing: 'border-box', marginTop: 10 }}
+            />
+            <div style={{ display: 'flex', gap: 10, marginTop: 10 }}>
+              <button onClick={() => resolveUserReport(r.id, 'ACTIONED')} style={approveBtn}>Mark actioned</button>
+              <button onClick={() => resolveUserReport(r.id, 'DISMISSED')} style={rejectBtn}>Dismiss</button>
+            </div>
+          </div>
+        ))}
       </div>
     </main>
   );
