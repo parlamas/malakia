@@ -127,29 +127,29 @@ export default function SubmitPage() {
   }, [subjectQuery]);
 
   async function handlePhotoUpload(file: File) {
-  setUploadingPhoto(true);
-  setErrorMessage('');
-  try {
-    const formData = new FormData();
-    formData.append('file', file);
-    const res = await fetch('/api/upload/person-photo', { method: 'POST', body: formData });
-    let data: any = {};
+    setUploadingPhoto(true);
+    setErrorMessage('');
     try {
-      data = await res.json();
-    } catch {
-      // response had no JSON body (e.g. a raw 500) — fall through with empty data
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await fetch('/api/upload/person-photo', { method: 'POST', body: formData });
+      let data: any = {};
+      try {
+        data = await res.json();
+      } catch {
+        // response had no JSON body (e.g. a raw 500) — fall through with empty data
+      }
+      if (res.ok) {
+        setPhotoUrl(data.url);
+      } else {
+        setErrorMessage(data.error ?? `Photo upload failed (status ${res.status}).`);
+      }
+    } catch (err) {
+      setErrorMessage('Photo upload failed — network or server error.');
+    } finally {
+      setUploadingPhoto(false);
     }
-    if (res.ok) {
-      setPhotoUrl(data.url);
-    } else {
-      setErrorMessage(data.error ?? `Photo upload failed (status ${res.status}).`);
-    }
-  } catch (err) {
-    setErrorMessage('Photo upload failed — network or server error.');
-  } finally {
-    setUploadingPhoto(false);
   }
-}
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -299,9 +299,12 @@ export default function SubmitPage() {
         <h1 style={{ fontFamily: 'Georgia, "Iowan Old Style", serif', fontSize: 30, color: '#1C2024', marginTop: 8, marginBottom: 4 }}>
           File a record
         </h1>
-        <p style={{ color: '#5F5E5A', marginBottom: 32, lineHeight: 1.6 }}>
-          Records may concern persons, institutions, organizations, businesses, nations, practices, traditions, or ideologies.
-        </p>
+        <p style={{ color: '#5F5E5A', marginBottom: 8, lineHeight: 1.6 }}>
+  Records may concern persons, institutions, organizations, businesses, nations, regimes, administrations, practices, traditions, or ideologies.
+</p>
+<p style={{ color: '#5F5E5A', fontSize: 12, marginBottom: 32 }}>
+  Fields marked * are required.
+</p>
 
         <div style={{ display: 'flex', marginBottom: 32 }}>
           {(['CALLOUS', 'CIVIC'] as Axis[]).map((a) => {
@@ -335,11 +338,14 @@ export default function SubmitPage() {
         <form onSubmit={handleSubmit}>
           <fieldset style={{ border: 'none', padding: 0, marginBottom: 28 }}>
             <legend style={sectionLabel}>Subject</legend>
+            <p style={{ fontSize: 13, color: '#5F5E5A', marginBottom: 14, marginTop: -4 }}>
+              Who or what is this record about? The category you pick below determines which details we ask for next.
+            </p>
 
             {!selectedSubjectId && (
               <>
                 <label style={dateLabel}>
-                  Category
+                  Category *
                   <select
                     value={subjectType}
                     onChange={(e) => setSubjectType(e.target.value as SubjectType)}
@@ -355,12 +361,15 @@ export default function SubmitPage() {
 
                 {subjectType && (
                   <>
+                    <p style={{ fontSize: 12, color: '#5F5E5A', margin: '14px 0 4px' }}>
+                      First, check this doesn't already exist:
+                    </p>
                     <input
                       type="text"
-                      placeholder="Search for an existing record by name"
+                      placeholder="Search by name…"
                       value={subjectQuery}
                       onChange={(e) => setSubjectQuery(e.target.value)}
-                      style={{ ...inputStyle, marginTop: 14 }}
+                      style={inputStyle}
                     />
                     {matches.length > 0 && (
                       <div style={{ border: '1px solid #B4B2A9', marginTop: 6 }}>
@@ -392,28 +401,42 @@ export default function SubmitPage() {
                     )}
 
                     <p style={{ fontSize: 13, color: '#5F5E5A', margin: '10px 0' }}>
-                      Not listed? Enter details below to create a new record.
+                      Not listed? Enter details below to create a new record. It only needs to be created once — after that, anyone can file against it.
                     </p>
 
-                    <input placeholder="Name" value={newSubject.displayName}
-                      onChange={(e) => setNewSubject({ ...newSubject, displayName: e.target.value })} style={inputStyle} />
+                    <label style={dateLabel}>
+  Name *
+  <input
+    placeholder="Full name or official name"
+    value={newSubject.displayName}
+    onChange={(e) => setNewSubject({ ...newSubject, displayName: e.target.value })}
+    style={{ ...inputStyle, marginTop: 4 }}
+    required
+  />
+</label>
 
-                    <textarea
-                      placeholder="Description (what this is)"
-                      value={newSubject.description}
-                      onChange={(e) => setNewSubject({ ...newSubject, description: e.target.value })}
-                      style={{ ...inputStyle, height: 70, marginTop: 10, resize: 'vertical' }}
-                    />
+                    <label style={dateLabel}>
+                      Short description (optional) — helps a reader who doesn't know who or what this is
+                      <textarea
+                        placeholder="e.g. A sovereign state in Central Europe"
+                        value={newSubject.description}
+                        onChange={(e) => setNewSubject({ ...newSubject, description: e.target.value })}
+                        style={{ ...inputStyle, height: 70, marginTop: 4, resize: 'vertical' }}
+                      />
+                    </label>
 
                     {subjectType === 'PERSON' && (
                       <>
-                        <select value={newSubject.personaCategory}
-                          onChange={(e) => setNewSubject({ ...newSubject, personaCategory: e.target.value })}
-                          style={{ ...inputStyle, marginTop: 10 }}>
-                          {PERSONA_CATEGORIES.map((c) => (
-                            <option key={c.value} value={c.value}>{c.label}</option>
-                          ))}
-                        </select>
+                        <label style={dateLabel}>
+                          Persona category — what kind of public role do they hold?
+                          <select value={newSubject.personaCategory}
+                            onChange={(e) => setNewSubject({ ...newSubject, personaCategory: e.target.value })}
+                            style={{ ...inputStyle, marginTop: 4 }}>
+                            {PERSONA_CATEGORIES.map((c) => (
+                              <option key={c.value} value={c.value}>{c.label}</option>
+                            ))}
+                          </select>
+                        </label>
 
                         <input placeholder="Role or title (e.g. Mayor of Aarhus, or Philosopher)" value={newSubject.roleTitle}
                           onChange={(e) => setNewSubject({ ...newSubject, roleTitle: e.target.value })}
@@ -423,7 +446,7 @@ export default function SubmitPage() {
 
                     {isHistoricalPerson && (
                       <label style={dateLabel}>
-                        Approximate period (optional, e.g. "5th century BCE Athens")
+                        Approximate period (optional, e.g. "5th century BCE Athens") — use this if exact dates aren't known
                         <input
                           value={approximatePeriod}
                           onChange={(e) => setApproximatePeriod(e.target.value)}
@@ -432,14 +455,20 @@ export default function SubmitPage() {
                       </label>
                     )}
 
-                    <input placeholder="Associated context (optional — e.g. jurisdiction, origin, region)" value={newSubject.associatedContext}
-                      onChange={(e) => setNewSubject({ ...newSubject, associatedContext: e.target.value })}
-                      style={{ ...inputStyle, marginTop: 10 }} />
+                    <label style={dateLabel}>
+                      Associated context (optional) — jurisdiction, country, or region this subject is tied to
+                      <input
+                        placeholder="e.g. Denmark, or the European Union"
+                        value={newSubject.associatedContext}
+                        onChange={(e) => setNewSubject({ ...newSubject, associatedContext: e.target.value })}
+                        style={{ ...inputStyle, marginTop: 4 }}
+                      />
+                    </label>
 
                     {showTenureFields && (
                       <>
                         <label style={dateLabel}>
-                          {subjectType === 'PERSON' ? 'Role start date' : 'Founding / formation date'}
+                          {subjectType === 'PERSON' ? 'Role start date — when they took this role' : 'Founding / formation date'}
                           <FlexibleDateSelect value={roleStart} onChange={setRoleStart} yearRequired />
                         </label>
 
@@ -450,7 +479,7 @@ export default function SubmitPage() {
 
                         {!stillServing && (
                           <label style={dateLabel}>
-                            {subjectType === 'PERSON' ? 'Role end date' : 'Dissolution / end date'}
+                            {subjectType === 'PERSON' ? 'Role end date — when they left this role' : 'Dissolution / end date'}
                             <FlexibleDateSelect value={roleEnd} onChange={setRoleEnd} />
                           </label>
                         )}
@@ -460,7 +489,7 @@ export default function SubmitPage() {
                     {showBirthDeath && (
                       <>
                         <label style={dateLabel}>
-                          Date of birth
+                          Date of birth (optional)
                           <FlexibleDateSelect value={birthDate} onChange={setBirthDate} />
                         </label>
 
@@ -478,12 +507,18 @@ export default function SubmitPage() {
                       </>
                     )}
 
-                    <input placeholder="Link supporting documentation (optional)" value={newSubject.roleEvidenceUrl}
-                      onChange={(e) => setNewSubject({ ...newSubject, roleEvidenceUrl: e.target.value })}
-                      style={{ ...inputStyle, marginTop: 10 }} />
+                    <label style={dateLabel}>
+                      Link supporting who/what this subject is (optional) — e.g. a biography or reference page, not evidence of the conduct below
+                      <input
+                        placeholder="https://…"
+                        value={newSubject.roleEvidenceUrl}
+                        onChange={(e) => setNewSubject({ ...newSubject, roleEvidenceUrl: e.target.value })}
+                        style={{ ...inputStyle, marginTop: 4 }}
+                      />
+                    </label>
 
                     <label style={dateLabel}>
-                      Photo or image (optional)
+                      Photo or image (optional) — shown on this subject's profile page
                       <input
                         type="file"
                         accept="image/*"
@@ -513,21 +548,27 @@ export default function SubmitPage() {
 
           <fieldset style={{ border: 'none', padding: 0, marginBottom: 28 }}>
             <legend style={sectionLabel}>Conduct</legend>
-
-            <select value={behaviorId} onChange={(e) => setBehaviorId(e.target.value)} style={inputStyle} required>
-              <option value="">Select the behavior that fits</option>
-              {behaviors.map((b) => (
-                <option key={b.id} value={b.id}>{b.label}</option>
-              ))}
-            </select>
+            <p style={{ fontSize: 13, color: '#5F5E5A', marginBottom: 14, marginTop: -4 }}>
+              What specifically happened? This is the incident or pattern of behavior you're filing.
+            </p>
 
             <label style={dateLabel}>
-              Date the conduct occurred
-              <FlexibleDateSelect value={conductDate} onChange={setConductDate} yearRequired />
+  Behavior * — pick the category that best fits what happened
+              <select value={behaviorId} onChange={(e) => setBehaviorId(e.target.value)} style={{ ...inputStyle, marginTop: 4 }} required>
+                <option value="">Select the behavior that fits</option>
+                {behaviors.map((b) => (
+                  <option key={b.id} value={b.id}>{b.label}</option>
+                ))}
+              </select>
             </label>
 
             <label style={dateLabel}>
-              Note on dating (optional)
+  Date the conduct occurred *
+  <FlexibleDateSelect value={conductDate} onChange={setConductDate} yearRequired />
+</label>
+
+            <label style={dateLabel}>
+              Note on dating (optional) — e.g. "circa", "shortly before his trial"
               <input
                 value={conductEraNote}
                 onChange={(e) => setConductEraNote(e.target.value)}
@@ -535,26 +576,32 @@ export default function SubmitPage() {
               />
             </label>
 
-            <textarea
-              placeholder="Describe what happened, specifically"
-              value={narrative}
-              onChange={(e) => setNarrative(e.target.value)}
-              style={{ ...inputStyle, height: 100, marginTop: 10, resize: 'vertical' }}
-              required
-            />
+            <label style={dateLabel}>
+  What happened, specifically *
+              <textarea
+                placeholder="Describe the incident or conduct in your own words"
+                value={narrative}
+                onChange={(e) => setNarrative(e.target.value)}
+                style={{ ...inputStyle, height: 100, marginTop: 4, resize: 'vertical' }}
+                required
+              />
+            </label>
 
-            <input
-              placeholder="Link to supporting evidence or source (optional)"
-              value={evidenceUrl}
-              onChange={(e) => setEvidenceUrl(e.target.value)}
-              style={{ ...inputStyle, marginTop: 10 }}
-            />
+            <label style={dateLabel}>
+              Link to evidence of this specific incident (optional) — a news article, document, or recording
+              <input
+                placeholder="https://…"
+                value={evidenceUrl}
+                onChange={(e) => setEvidenceUrl(e.target.value)}
+                style={{ ...inputStyle, marginTop: 4 }}
+              />
+            </label>
           </fieldset>
 
           <fieldset style={{ border: 'none', padding: 0, marginBottom: 28 }}>
-            <legend style={sectionLabel}>Justification</legend>
+            <legend style={sectionLabel}>Justification *</legend>
             <p style={{ fontSize: 13, color: '#5F5E5A', marginBottom: 8 }}>
-              Explain the basis for this claim — evidence, source, or reasoning.
+              Not what happened — why it counts as {axis === 'CALLOUS' ? 'callous' : 'civic-minded'} conduct, or why it falls within this subject's public role.
             </p>
             <textarea
               value={justification}
