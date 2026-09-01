@@ -566,8 +566,15 @@ export default function SubjectProfilePage() {
           <span style={badgeStyle('#B8860B', '#FBF1DC')}>Status not yet confirmed</span>
         )}
         {subject.verificationStatus === 'ADMIN_CONFIRMED' && (
-          <span style={badgeStyle('#2F5D50', '#E7EEEA')}>Confirmed</span>
-        )}
+  <span style={confirmedBadgeStyle(subject.adminJudgment ? computeNetValue(subject.adminJudgment.entries as JudgmentEntryLike[]) : null)}>
+    {(() => {
+      if (!subject.adminJudgment) return 'CONFIRMED';
+      const net = computeNetValue(subject.adminJudgment.entries as JudgmentEntryLike[]);
+      const label = computeLabel(net);
+      return label === 'Controversial' ? 'CONFIRMED — CONTROVERSIAL' : `CONFIRMED — ${label.toUpperCase()}`;
+    })()}
+  </span>
+)}
         {subject.verificationStatus === 'DISPUTED' && (
           <span style={badgeStyle('#7A2E2E', '#F3E8E6')}>Disputed</span>
         )}
@@ -845,5 +852,20 @@ function badgeStyle(color: string, bg: string): React.CSSProperties {
     padding: '3px 10px',
     marginTop: 6,
     fontFamily: 'Inter, system-ui, sans-serif',
+  };
+}
+
+function confirmedBadgeStyle(netValue: number | null): React.CSSProperties {
+  const color = netValue === null ? '#5F5E5A' : netValue > 0 ? '#2F5D50' : netValue < 0 ? '#7A2E2E' : '#B8860B';
+  return {
+    display: 'inline-block',
+    fontSize: 15,
+    fontWeight: 'bold',
+    fontFamily: 'Georgia, serif',
+    letterSpacing: '0.03em',
+    color: '#fff',
+    background: color,
+    padding: '6px 16px',
+    marginTop: 8,
   };
 }
