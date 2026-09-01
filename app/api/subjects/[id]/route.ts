@@ -23,6 +23,9 @@ export async function GET(
         },
         orderBy: { createdAt: 'desc' },
       },
+      adminJudgment: {
+        include: { entries: { orderBy: { order: 'asc' } } },
+      },
     },
   });
 
@@ -64,7 +67,7 @@ export async function GET(
     deathUnknown: subject.deathUnknown,
     photoUrl: subject.photoUrl,
     verificationStatus: subject.verificationStatus,
-    adminScaleValue: subject.adminScaleValue,
+    adminJudgment: subject.adminJudgment,
   };
 
   if (subject.verificationStatus === 'DISPUTED') {

@@ -1,4 +1,4 @@
-// app/api/scale-suggestions/route.ts
+// app/api/subjects/[id]/admin-judgment/route.ts
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
@@ -31,37 +31,25 @@ function validateEntries(entries: EntryInput[]): string | null {
   return null;
 }
 
-export async function POST(req: NextRequest) {
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
   }
+  if (!user.isAdmin) {
+    return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
+  }
 
+  const { id } = await params;
   const body = await req.json();
-  const { subjectId, entries, replyToId } = body;
+  const { entries } = body;
 
-  if (!subjectId) {
-    return NextResponse.json({ error: 'subjectId is required' }, { status: 400 });
-  }
-
-  const subject = await prisma.subject.findUnique({ where: { id: subjectId } });
-  if (!subject) {
+  const existingSubject = await prisma.subject.findUnique({ where: { id } });
+  if (!existingSubject) {
     return NextResponse.json({ error: 'Subject not found' }, { status: 404 });
-  }
-
-  const existingCount = await prisma.scaleSuggestion.count({ where: { subjectId } });
-  if (existingCount > 0 && !replyToId) {
-    return NextResponse.json(
-      { error: 'A suggestion must reply to an existing one, unless it is the first for this subject' },
-      { status: 400 },
-    );
-  }
-
-  if (replyToId) {
-    const target = await prisma.scaleSuggestion.findUnique({ where: { id: replyToId } });
-    if (!target || target.subjectId !== subjectId) {
-      return NextResponse.json({ error: 'replyToId must reference an existing suggestion on the same subject' }, { status: 400 });
-    }
   }
 
   const entryList: EntryInput[] = Array.isArray(entries) ? entries.filter((e) => e && (e.magnitude || e.justification)) : [];
@@ -73,20 +61,26 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  const suggestion = await prisma.$transaction(async (tx) => {
-    const created = await tx.scaleSuggestion.create({
-      data: {
-        subjectId,
-        userId: user.id,
-        replyToId: replyToId || null,
-      },
-    });
+  const judgment = await prisma.$transaction(async (tx) => {
+    const existing = await tx.adminJudgment.findUnique({ where: { subjectId: id } });
+
+    let judgmentRecord;
+    if (existing) {
+      await tx.adminJudgmentEntry.deleteMany({ where: { judgmentId: existing.id } });
+      judgmentRecord = await tx.adminJudgment.update({
+        where: { id: existing.id },
+        data: { setByUserId: user.id },
+      });
+    } else {
+      judgmentRecord = await tx.adminJudgment.create({
+        data: { subjectId: id, setByUserId: user.id },
+      });
+    }
 
     if (entryList.length === 0) {
-      // All fields left blank — record as a single zero entry
-      await tx.suggestionEntry.create({
+      await tx.adminJudgmentEntry.create({
         data: {
-          suggestionId: created.id,
+          judgmentId: judgmentRecord.id,
           side: 'ZERO',
           magnitude: 0,
           justification: null,
@@ -97,9 +91,9 @@ export async function POST(req: NextRequest) {
       let negOrder = 0;
       let posOrder = 0;
       for (const e of entryList) {
-        await tx.suggestionEntry.create({
+        await tx.adminJudgmentEntry.create({
           data: {
-            suggestionId: created.id,
+            judgmentId: judgmentRecord.id,
             side: e.side,
             magnitude: e.magnitude,
             justification: e.justification || null,
@@ -109,32 +103,33 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    return tx.scaleSuggestion.findUnique({
-      where: { id: created.id },
-      include: { entries: true },
+    await tx.auditLogEntry.create({
+      data: {
+        actorUserId: user.id,
+        action: 'admin_judgment_set',
+        targetType: 'Subject',
+        targetId: id,
+        reason: `entries=${entryList.length}`,
+      },
+    });
+
+    return tx.adminJudgment.findUnique({
+      where: { id: judgmentRecord.id },
+      include: { entries: { orderBy: { order: 'asc' } } },
     });
   });
 
-  return NextResponse.json({ suggestion }, { status: 201 });
+  return NextResponse.json({ judgment });
 }
 
-export async function GET(req: NextRequest) {
-  const { searchParams } = new URL(req.url);
-  const subjectId = searchParams.get('subjectId');
-
-  if (!subjectId) {
-    return NextResponse.json({ error: 'subjectId query parameter required' }, { status: 400 });
-  }
-
-  const suggestions = await prisma.scaleSuggestion.findMany({
-    where: { subjectId },
-    include: {
-      user: { select: { id: true, username: true } },
-      entries: { orderBy: { order: 'asc' } },
-      replyTo: { include: { user: { select: { id: true, username: true } } } },
-    },
-    orderBy: { createdAt: 'asc' },
+export async function GET(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
+  const judgment = await prisma.adminJudgment.findUnique({
+    where: { subjectId: id },
+    include: { entries: { orderBy: { order: 'asc' } }, setBy: { select: { username: true } } },
   });
-
-  return NextResponse.json({ suggestions });
+  return NextResponse.json({ judgment });
 }

@@ -31,6 +31,7 @@ model User {
   reactions           Reaction[]        @relation("ReactionAuthor")
   reports             Report[]          @relation("ReportAuthor")
   reviewedReports     Report[]          @relation("ReportReviewer")
+  adminJudgments      AdminJudgment[]   @relation("AdminJudgmentAuthor")
 }
 
 // Account, Session, VerificationToken models stay the same
@@ -104,6 +105,7 @@ enum SubjectType {
   ORGANIZATION
   BUSINESS
   NATION
+  REGIME
   PRACTICE
   TRADITION
   IDEOLOGY
@@ -148,6 +150,12 @@ enum ReportStatus {
   DISMISSED
 }
 
+enum JudgmentSide {
+  NEGATIVE
+  POSITIVE
+  ZERO // used only when a judgment is submitted with nothing filled in on either side
+}
+
 model Subject {
   id                  String              @id @default(cuid())
   subjectType         SubjectType
@@ -171,7 +179,7 @@ model Subject {
   roleEndDay          Int?
   roleEndCirca        Boolean             @default(false)
   roleEndUnknown      Boolean             @default(false)
-  stillServing        Boolean             @default(false) // also used by NATION/INSTITUTION/ORG/BUSINESS as "still exists/active"
+  stillServing        Boolean             @default(false) // also used by NATION/INSTITUTION/ORG/BUSINESS/REGIME as "still exists/active"
 
   approximatePeriod   String?             // free text fallback, e.g. "5th century BCE Athens"
 
@@ -196,7 +204,7 @@ model Subject {
   photoUrl            String?
   verificationStatus  VerificationStatus  @default(UNVERIFIED)
 
-  adminScaleValue     Int?                // -1000 to +1000, callous to civic-minded, set by the admin; null = not yet judged
+  adminJudgment       AdminJudgment?
 
   posts               Post[]
   scaleSuggestions    ScaleSuggestion[]
@@ -292,19 +300,58 @@ model ScaleSuggestion {
   userId        String
   user          User     @relation("ScaleSuggestionAuthor", fields: [userId], references: [id])
 
-  value         Int      // -1000 (callous) to +1000 (civic-minded)
-  reasoning     String?  // optional justification, personal responsibility
-
   replyToId     String?
   replyTo       ScaleSuggestion?  @relation("SuggestionReplies", fields: [replyToId], references: [id])
   replies       ScaleSuggestion[] @relation("SuggestionReplies")
 
   createdAt     DateTime @default(now())
 
+  entries       SuggestionEntry[]
   reactions     Reaction[]
   reports       Report[]
 
   @@index([subjectId])
+}
+
+model SuggestionEntry {
+  id            String          @id @default(cuid())
+  suggestionId  String
+  suggestion    ScaleSuggestion @relation(fields: [suggestionId], references: [id], onDelete: Cascade)
+
+  side          JudgmentSide
+  magnitude     Int             // 0-1000
+  justification String?
+  order         Int             // determines A, B, C... within its side
+
+  createdAt     DateTime        @default(now())
+}
+
+model AdminJudgment {
+  id            String   @id @default(cuid())
+
+  subjectId     String   @unique
+  subject       Subject  @relation(fields: [subjectId], references: [id])
+
+  setByUserId   String
+  setBy         User     @relation("AdminJudgmentAuthor", fields: [setByUserId], references: [id])
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  entries       AdminJudgmentEntry[]
+}
+
+model AdminJudgmentEntry {
+  id            String        @id @default(cuid())
+  judgmentId    String
+  judgment      AdminJudgment @relation(fields: [judgmentId], references: [id], onDelete: Cascade)
+
+  side          JudgmentSide
+  magnitude     Int           // 0-1000
+  justification String?
+  order         Int           // determines A, B, C... within its side
+
+  createdAt     DateTime      @default(now())
 }
 
 model Reaction {

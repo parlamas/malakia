@@ -21,7 +21,11 @@ export async function GET(req: NextRequest) {
       description: true,
       roleTitle: true,
       verificationStatus: true,
-      adminScaleValue: true,
+      adminJudgment: {
+        select: {
+          entries: { select: { side: true, magnitude: true } },
+        },
+      },
       _count: {
         select: { posts: { where: { status: 'PUBLISHED' } } },
       },
