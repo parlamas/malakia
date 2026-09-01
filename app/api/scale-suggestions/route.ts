@@ -87,13 +87,14 @@ export async function POST(req: NextRequest) {
 
   const suggestion = await prisma.$transaction(async (tx) => {
     const created = await tx.scaleSuggestion.create({
-      data: {
-        subjectId,
-        userId: user.id,
-        replyToId: replyToId || null,
-        replyToPostId: replyToPostId || null,
-      },
-    });
+  data: {
+    subjectId,
+    userId: user.id,
+    replyToId: replyToId || null,
+    replyToPostId: replyToPostId || null,
+    status: 'PENDING',
+  },
+});
 
     if (entryList.length === 0) {
       await tx.suggestionEntry.create({
@@ -139,15 +140,15 @@ export async function GET(req: NextRequest) {
   }
 
   const suggestions = await prisma.scaleSuggestion.findMany({
-    where: { subjectId },
-    include: {
-      user: { select: { id: true, username: true } },
-      entries: { orderBy: { order: 'asc' } },
-      replyTo: { include: { user: { select: { id: true, username: true } } } },
-      replyToPost: { include: { author: { select: { username: true } } } },
-    },
-    orderBy: { createdAt: 'asc' },
-  });
+  where: { subjectId, status: 'PUBLISHED' },
+  include: {
+    user: { select: { id: true, username: true } },
+    entries: { orderBy: { order: 'asc' } },
+    replyTo: { include: { user: { select: { id: true, username: true } } } },
+    replyToPost: { include: { author: { select: { username: true } } } },
+  },
+  orderBy: { createdAt: 'asc' },
+});
 
   return NextResponse.json({ suggestions });
 }

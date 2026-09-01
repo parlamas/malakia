@@ -32,6 +32,10 @@ model User {
   reports             Report[]          @relation("ReportAuthor")
   reviewedReports     Report[]          @relation("ReportReviewer")
   adminJudgments      AdminJudgment[]   @relation("AdminJudgmentAuthor")
+  moderatedSuggestions ScaleSuggestion[] @relation("SuggestionLanguageModerator")
+  userReportsFiled     UserReport[]      @relation("UserReportAuthor")
+  userReportsReceived  UserReport[]      @relation("UserReportSubject")
+  userReportsReviewed  UserReport[]      @relation("UserReportReviewer")
 }
 
 // Account, Session, VerificationToken models stay the same
@@ -309,6 +313,12 @@ model ScaleSuggestion {
   replyToPostId String?
   replyToPost   Post?    @relation("SuggestionRepliesToPost", fields: [replyToPostId], references: [id])
 
+  status                PostStatus @default(PENDING)
+  languageModeratedById String?
+  languageModeratedBy   User?      @relation("SuggestionLanguageModerator", fields: [languageModeratedById], references: [id])
+  languageModeratedAt   DateTime?
+  rejectionReason       String?
+
   createdAt     DateTime @default(now())
 
   entries       SuggestionEntry[]
@@ -316,6 +326,7 @@ model ScaleSuggestion {
   reports       Report[]
 
   @@index([subjectId])
+  @@index([status])
 }
 
 model SuggestionEntry {
@@ -407,4 +418,25 @@ model Report {
   createdAt         DateTime          @default(now())
 
   @@index([postId])
+}
+
+model UserReport {
+  id                String       @id @default(cuid())
+  reporterUserId    String
+  reporter          User         @relation("UserReportAuthor", fields: [reporterUserId], references: [id])
+
+  reportedUserId    String
+  reportedUser      User         @relation("UserReportSubject", fields: [reportedUserId], references: [id])
+
+  reason            String
+  status            ReportStatus @default(PENDING)
+
+  reviewedById      String?
+  reviewedBy        User?        @relation("UserReportReviewer", fields: [reviewedById], references: [id])
+  reviewedAt        DateTime?
+  resolutionNote    String?
+
+  createdAt         DateTime     @default(now())
+
+  @@index([reportedUserId])
 }
