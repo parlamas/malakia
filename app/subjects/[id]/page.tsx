@@ -924,8 +924,8 @@ export default function SubjectProfilePage() {
           {isAuthenticated ? (
             <form onSubmit={handleSubmitSuggestion} style={{ marginTop: 16 }}>
               <p style={{ fontSize: 12, color: '#2F5D50', marginBottom: 8 }}>
-                Replying to {describeTarget(replyTarget)}. Click the admin verdict or any suggestion/post above to change.
-              </p>
+  Click on what you wish to target. Currently: <strong>{describeTarget(replyTarget)}</strong>
+</p>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 10 }}>
                 <PairEditor side="NEGATIVE" pairs={suggestionNegatives} onChange={setSuggestionNegatives} color="#7A2E2E" />
                 <PairEditor side="POSITIVE" pairs={suggestionPositives} onChange={setSuggestionPositives} color="#2F5D50" />
