@@ -7,7 +7,7 @@ import Link from 'next/link';
 import FlexibleDateSelect, { FlexibleDate } from '@/components/FlexibleDateSelect';
 
 type Axis = 'CALLOUS' | 'CIVIC';
-type SubjectType = 'PERSON' | 'INSTITUTION' | 'ORGANIZATION' | 'BUSINESS' | 'NATION' | 'PRACTICE' | 'TRADITION' | 'IDEOLOGY';
+type SubjectType = 'PERSON' | 'INSTITUTION' | 'ORGANIZATION' | 'BUSINESS' | 'NATION' | 'REGIME' | 'ADMINISTRATION' | 'PRACTICE' | 'TRADITION' | 'IDEOLOGY';
 
 interface Behavior {
   id: string;
@@ -30,6 +30,8 @@ const SUBJECT_TYPES: { value: SubjectType; label: string }[] = [
   { value: 'ORGANIZATION', label: 'Organization' },
   { value: 'BUSINESS', label: 'Business' },
   { value: 'NATION', label: 'Nation' },
+  { value: 'REGIME', label: 'Regime' },
+  { value: 'ADMINISTRATION', label: 'Administration' },
   { value: 'PRACTICE', label: 'Practice' },
   { value: 'TRADITION', label: 'Tradition' },
   { value: 'IDEOLOGY', label: 'Ideology' },
@@ -43,7 +45,7 @@ const PERSONA_CATEGORIES = [
   { value: 'HISTORICAL_FIGURE', label: 'Historical or classical figure (any era)' },
 ];
 
-const HAS_TENURE_FIELDS: SubjectType[] = ['PERSON', 'INSTITUTION', 'ORGANIZATION', 'BUSINESS', 'NATION'];
+const HAS_TENURE_FIELDS: SubjectType[] = ['PERSON', 'INSTITUTION', 'ORGANIZATION', 'BUSINESS', 'NATION', 'REGIME', 'ADMINISTRATION'];
 const HAS_BIRTH_DEATH: SubjectType[] = ['PERSON'];
 
 const emptyFlexDate: FlexibleDate = { year: null, month: null, day: null, circa: false, unknown: false };

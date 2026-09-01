@@ -5,7 +5,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import BalanceScale from '@/components/BalanceScale';
-import { computeDisplayId } from '@/lib/displayId';
+import { computeDisplayId, labelEntries, computeNetValue, computeLabel, JudgmentEntryLike } from '@/lib/displayId';
 
 interface Behavior {
   label: string;
@@ -36,6 +36,22 @@ interface Post {
   author: { username: string };
   createdAt: string;
   contests: Contest[];
+}
+
+interface JudgmentEntryData {
+  id: string;
+  side: 'NEGATIVE' | 'POSITIVE' | 'ZERO';
+  magnitude: number;
+  justification: string | null;
+  order: number;
+}
+
+interface AdminJudgmentData {
+  id: string;
+  createdAt: string;
+  updatedAt: string;
+  entries: JudgmentEntryData[];
+  setBy?: { username: string };
 }
 
 interface SubjectData {
@@ -72,7 +88,7 @@ interface SubjectData {
   deathUnknown: boolean;
   photoUrl: string | null;
   verificationStatus: 'UNVERIFIED' | 'ADMIN_CONFIRMED' | 'DISPUTED';
-  adminScaleValue: number | null;
+  adminJudgment: AdminJudgmentData | null;
 }
 
 interface SubjectRecord {
@@ -83,10 +99,9 @@ interface SubjectRecord {
 
 interface ScaleSuggestion {
   id: string;
-  value: number;
-  reasoning: string | null;
   createdAt: string;
   user: { username: string };
+  entries: JudgmentEntryData[];
   replyTo: { createdAt: string; user: { username: string } } | null;
 }
 
@@ -98,12 +113,19 @@ interface ReactionItem {
   user: { username: string };
 }
 
+interface DraftPair {
+  magnitude: string;
+  justification: string;
+}
+
 const SUBJECT_TYPE_LABELS: Record<string, string> = {
   PERSON: 'Person',
   INSTITUTION: 'Institution',
   ORGANIZATION: 'Organization',
   BUSINESS: 'Business',
   NATION: 'Nation',
+  REGIME: 'Regime',
+  ADMINISTRATION: 'Administration',
   PRACTICE: 'Practice',
   TRADITION: 'Tradition',
   IDEOLOGY: 'Ideology',
@@ -117,7 +139,7 @@ const PERSONA_LABELS: Record<string, string> = {
   HISTORICAL_FIGURE: 'Historical or classical figure',
 };
 
-const HAS_TENURE_FIELDS = ['PERSON', 'INSTITUTION', 'ORGANIZATION', 'BUSINESS', 'NATION'];
+const HAS_TENURE_FIELDS = ['PERSON', 'INSTITUTION', 'ORGANIZATION', 'BUSINESS', 'NATION', 'REGIME', 'ADMINISTRATION'];
 const HAS_BIRTH_DEATH = ['PERSON'];
 
 const MONTH_NAMES = [
@@ -174,6 +196,128 @@ function formatConductDate(post: Post): string {
   return post.conductEraNote ? `${base} (${post.conductEraNote})` : base;
 }
 
+// Renders the negative/positive entry breakdown for a judgment (admin or suggestion)
+function JudgmentBreakdown({ entries }: { entries: JudgmentEntryData[] }) {
+  const labeled = labelEntries(entries as JudgmentEntryLike[]);
+  const net = computeNetValue(entries as JudgmentEntryLike[]);
+  const label = computeLabel(net);
+  const negatives = labeled.filter((e) => e.side === 'NEGATIVE');
+  const positives = labeled.filter((e) => e.side === 'POSITIVE');
+  const zero = labeled.filter((e) => e.side === 'ZERO');
+
+  const labelColor = label === 'Civic' ? '#2F5D50' : label === 'Callous' ? '#7A2E2E' : '#B8860B';
+
+  return (
+    <div>
+      <BalanceScale value={net} />
+      <p style={{ textAlign: 'center', fontWeight: 'bold', color: labelColor, fontFamily: 'Georgia, serif', fontSize: 16, marginTop: 4 }}>
+        {label}
+      </p>
+
+      {zero.length > 0 && (
+        <p style={{ fontSize: 13, color: '#5F5E5A', textAlign: 'center' }}>No content submitted (Z).</p>
+      )}
+
+      {(negatives.length > 0 || positives.length > 0) && (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginTop: 12 }}>
+          <div>
+            <p style={{ fontSize: 11, color: '#7A2E2E', fontWeight: 'bold', marginBottom: 6 }}>NEGATIVE</p>
+            {negatives.length === 0 && <p style={{ fontSize: 12, color: '#5F5E5A' }}>None</p>}
+            {negatives.map((e) => (
+              <div key={e.label} style={{ marginBottom: 8 }}>
+                <p style={{ fontSize: 12, color: '#7A2E2E', margin: 0 }}>
+                  <strong>{e.label}</strong> — {e.magnitude}
+                </p>
+                {e.justification && <p style={{ fontSize: 12, color: '#1C2024', margin: '2px 0 0' }}>{e.justification}</p>}
+              </div>
+            ))}
+          </div>
+          <div>
+            <p style={{ fontSize: 11, color: '#2F5D50', fontWeight: 'bold', marginBottom: 6 }}>POSITIVE</p>
+            {positives.length === 0 && <p style={{ fontSize: 12, color: '#5F5E5A' }}>None</p>}
+            {positives.map((e) => (
+              <div key={e.label} style={{ marginBottom: 8 }}>
+                <p style={{ fontSize: 12, color: '#2F5D50', margin: 0 }}>
+                  <strong>{e.label}</strong> — {e.magnitude}
+                </p>
+                {e.justification && <p style={{ fontSize: 12, color: '#1C2024', margin: '2px 0 0' }}>{e.justification}</p>}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// A repeatable "add pair" editor for negative or positive entries
+function PairEditor({
+  side,
+  pairs,
+  onChange,
+  color,
+}: {
+  side: 'NEGATIVE' | 'POSITIVE';
+  pairs: DraftPair[];
+  onChange: (pairs: DraftPair[]) => void;
+  color: string;
+}) {
+  function updatePair(index: number, field: keyof DraftPair, value: string) {
+    const next = [...pairs];
+    next[index] = { ...next[index], [field]: value };
+    onChange(next);
+  }
+  function addPair() {
+    onChange([...pairs, { magnitude: '', justification: '' }]);
+  }
+  function removePair(index: number) {
+    onChange(pairs.filter((_, i) => i !== index));
+  }
+
+  return (
+    <div>
+      <p style={{ fontSize: 11, color, fontWeight: 'bold', marginBottom: 6 }}>
+        {side === 'NEGATIVE' ? 'NEGATIVE (sum ≤ 1000)' : 'POSITIVE (sum ≤ 1000)'}
+      </p>
+      {pairs.map((p, i) => (
+        <div key={i} style={{ marginBottom: 8, border: '1px solid #E8E4DA', padding: 8 }}>
+          <input
+            type="number"
+            min={0}
+            max={1000}
+            placeholder="Magnitude (0-1000)"
+            value={p.magnitude}
+            onChange={(e) => updatePair(i, 'magnitude', e.target.value)}
+            style={{ ...pairInputStyle, marginBottom: 6 }}
+          />
+          <textarea
+            placeholder="Justification"
+            value={p.justification}
+            onChange={(e) => updatePair(i, 'justification', e.target.value)}
+            style={{ ...pairInputStyle, height: 44, resize: 'vertical' }}
+          />
+          <button type="button" onClick={() => removePair(i)} style={{ fontSize: 11, color: '#7A2E2E', background: 'none', border: 'none', cursor: 'pointer', marginTop: 4 }}>
+            Remove
+          </button>
+        </div>
+      ))}
+      <button type="button" onClick={addPair} style={{ fontSize: 12, padding: '6px 12px', background: 'transparent', border: `1px solid ${color}`, color, cursor: 'pointer' }}>
+        + Add {side === 'NEGATIVE' ? 'negative' : 'positive'} pair
+      </button>
+    </div>
+  );
+}
+
+function pairsToEntries(pairs: DraftPair[], side: 'NEGATIVE' | 'POSITIVE') {
+  return pairs
+    .filter((p) => p.magnitude || p.justification)
+    .map((p) => ({
+      side,
+      magnitude: p.magnitude ? Number(p.magnitude) : 0,
+      justification: p.justification || null,
+    }));
+}
+
 export default function SubjectProfilePage() {
   const { id } = useParams<{ id: string }>();
   const [data, setData] = useState<SubjectRecord | null>(null);
@@ -184,16 +328,17 @@ export default function SubjectProfilePage() {
 
   const [suggestions, setSuggestions] = useState<ScaleSuggestion[]>([]);
 
-  const [suggestionValue, setSuggestionValue] = useState('');
-  const [suggestionReasoning, setSuggestionReasoning] = useState('');
+  const [suggestionNegatives, setSuggestionNegatives] = useState<DraftPair[]>([]);
+  const [suggestionPositives, setSuggestionPositives] = useState<DraftPair[]>([]);
   const [suggestionReplyToId, setSuggestionReplyToId] = useState('');
   const [submittingSuggestion, setSubmittingSuggestion] = useState(false);
   const [suggestionError, setSuggestionError] = useState('');
   const [suggestionSuccess, setSuggestionSuccess] = useState(false);
 
-  const [adminValueInput, setAdminValueInput] = useState('');
-  const [savingAdminValue, setSavingAdminValue] = useState(false);
-  const [adminValueError, setAdminValueError] = useState('');
+  const [adminNegatives, setAdminNegatives] = useState<DraftPair[]>([]);
+  const [adminPositives, setAdminPositives] = useState<DraftPair[]>([]);
+  const [savingAdminJudgment, setSavingAdminJudgment] = useState(false);
+  const [adminJudgmentError, setAdminJudgmentError] = useState('');
 
   const [verifyStatus, setVerifyStatus] = useState<'idle' | 'saving'>('idle');
   const [verifyError, setVerifyError] = useState('');
@@ -226,7 +371,6 @@ export default function SubjectProfilePage() {
         if (d) {
           setData(d);
           setStatus('ready');
-          setAdminValueInput(d.subject.adminScaleValue !== null ? String(d.subject.adminScaleValue) : '');
         }
       });
   }, [id]);
@@ -286,22 +430,19 @@ export default function SubjectProfilePage() {
       return;
     }
 
-    setSubmittingSuggestion(true);
+    const entries = [
+      ...pairsToEntries(suggestionNegatives, 'NEGATIVE'),
+      ...pairsToEntries(suggestionPositives, 'POSITIVE'),
+    ];
 
-    const numeric = Number(suggestionValue);
-    if (!Number.isInteger(numeric) || numeric < -1000 || numeric > 1000) {
-      setSuggestionError('Enter a whole number between -1000 and 1000.');
-      setSubmittingSuggestion(false);
-      return;
-    }
+    setSubmittingSuggestion(true);
 
     const res = await fetch('/api/scale-suggestions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         subjectId: id,
-        value: numeric,
-        reasoning: suggestionReasoning || null,
+        entries,
         replyToId: suggestionReplyToId || null,
       }),
     });
@@ -314,33 +455,34 @@ export default function SubjectProfilePage() {
       return;
     }
 
-    setSuggestionValue('');
-    setSuggestionReasoning('');
+    setSuggestionNegatives([]);
+    setSuggestionPositives([]);
     setSuggestionReplyToId('');
     setSuggestionSuccess((s) => !s);
   }
 
-  async function handleSaveAdminValue() {
-    setAdminValueError('');
-    const numeric = Number(adminValueInput);
-    if (!Number.isInteger(numeric) || numeric < -1000 || numeric > 1000) {
-      setAdminValueError('Enter a whole number between -1000 and 1000.');
-      return;
-    }
-    setSavingAdminValue(true);
-    const res = await fetch(`/api/subjects/${id}/admin-scale`, {
+  async function handleSaveAdminJudgment() {
+    setAdminJudgmentError('');
+    const entries = [
+      ...pairsToEntries(adminNegatives, 'NEGATIVE'),
+      ...pairsToEntries(adminPositives, 'POSITIVE'),
+    ];
+    setSavingAdminJudgment(true);
+    const res = await fetch(`/api/subjects/${id}/admin-judgment`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ value: numeric }),
+      body: JSON.stringify({ entries }),
     });
-    setSavingAdminValue(false);
+    setSavingAdminJudgment(false);
     if (!res.ok) {
       const d = await res.json();
-      setAdminValueError(d.error ?? 'Something went wrong.');
+      setAdminJudgmentError(d.error ?? 'Something went wrong.');
       return;
     }
     const d = await res.json();
-    setData((prev) => prev ? { ...prev, subject: { ...prev.subject, adminScaleValue: d.subject.adminScaleValue } } : prev);
+    setData((prev) => prev ? { ...prev, subject: { ...prev.subject, adminJudgment: d.judgment } } : prev);
+    setAdminNegatives([]);
+    setAdminPositives([]);
   }
 
   async function handleSetVerification(newStatus: 'ADMIN_CONFIRMED' | 'DISPUTED' | 'UNVERIFIED') {
@@ -424,13 +566,7 @@ export default function SubjectProfilePage() {
           <span style={badgeStyle('#B8860B', '#FBF1DC')}>Status not yet confirmed</span>
         )}
         {subject.verificationStatus === 'ADMIN_CONFIRMED' && (
-          <span style={confirmedBadgeStyle(subject.adminScaleValue)}>
-            {subject.adminScaleValue === null
-              ? 'CONFIRMED'
-              : subject.adminScaleValue >= 0
-                ? 'CONFIRMED — CIVIC-MINDED'
-                : 'CONFIRMED — CALLOUS'}
-          </span>
+          <span style={badgeStyle('#2F5D50', '#E7EEEA')}>Confirmed</span>
         )}
         {subject.verificationStatus === 'DISPUTED' && (
           <span style={badgeStyle('#7A2E2E', '#F3E8E6')}>Disputed</span>
@@ -470,176 +606,150 @@ export default function SubjectProfilePage() {
         )}
 
         <div style={{ border: '1px solid #B4B2A9', background: '#fff', padding: '20px', marginTop: 28, marginBottom: 32 }}>
-          <p style={monoLabel}>ETHICS SCALE (−1000 CALLOUS · +1000 CIVIC-MINDED)</p>
+          <p style={monoLabel}>ETHICS JUDGMENT — ADMIN</p>
 
-          <div style={{ margin: '10px 0 16px' }}>
-            {subject.adminScaleValue !== null ? (
-              <>
-                <BalanceScale value={subject.adminScaleValue} />
-                <p style={{ fontSize: 13, color: '#5F5E5A', textAlign: 'center', marginTop: 4 }}>admin-assigned</p>
-              </>
-            ) : (
-              <p style={{ color: '#5F5E5A', fontSize: 14, margin: 0 }}>Not yet assigned an admin value.</p>
-            )}
-          </div>
-
-          {isAdmin && (
-            <div style={{ borderTop: '1px solid #E8E4DA', paddingTop: 14, marginBottom: 20 }}>
-              <label style={{ ...monoLabel, display: 'block', marginBottom: 6 }}>Set admin value</label>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <input
-                  type="number"
-                  min={-1000}
-                  max={1000}
-                  value={adminValueInput}
-                  onChange={(e) => setAdminValueInput(e.target.value)}
-                  style={{ ...inputStyle, width: 120 }}
-                />
-                <button
-                  onClick={handleSaveAdminValue}
-                  disabled={savingAdminValue}
-                  style={{ padding: '10px 18px', background: '#1C2024', color: '#fff', border: 'none', fontFamily: 'Georgia, serif', cursor: 'pointer' }}
-                >
-                  {savingAdminValue ? 'Saving…' : 'Save'}
-                </button>
-              </div>
-              {adminValueError && <p style={{ color: '#7A2E2E', fontSize: 13, marginTop: 6 }}>{adminValueError}</p>}
-            </div>
+          {subject.adminJudgment ? (
+            <JudgmentBreakdown entries={subject.adminJudgment.entries} />
+          ) : (
+            <p style={{ color: '#5F5E5A', fontSize: 14 }}>Not yet judged by an admin.</p>
           )}
 
-          <div style={{ borderTop: '1px solid #E8E4DA', paddingTop: 16 }}>
-            <p style={{ fontFamily: 'Georgia, serif', fontSize: 15, color: '#1C2024', marginBottom: 4 }}>
-              User-suggested values
-            </p>
-            <p style={{ fontSize: 11, color: '#5F5E5A', marginBottom: 10 }}>
-              All record IDs use UTC for date and time.
-            </p>
+          {isAdmin && (
+            <div style={{ borderTop: '1px solid #E8E4DA', marginTop: 20, paddingTop: 16 }}>
+              <p style={{ fontFamily: 'Georgia, serif', fontSize: 14, color: '#1C2024', marginBottom: 10 }}>
+                Set admin judgment (replaces the current one)
+              </p>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                <PairEditor side="NEGATIVE" pairs={adminNegatives} onChange={setAdminNegatives} color="#7A2E2E" />
+                <PairEditor side="POSITIVE" pairs={adminPositives} onChange={setAdminPositives} color="#2F5D50" />
+              </div>
+              {adminJudgmentError && <p style={{ color: '#7A2E2E', fontSize: 13, marginTop: 10 }}>{adminJudgmentError}</p>}
+              <button
+                onClick={handleSaveAdminJudgment}
+                disabled={savingAdminJudgment}
+                style={{ marginTop: 12, padding: '10px 18px', background: '#1C2024', color: '#fff', border: 'none', fontFamily: 'Georgia, serif', cursor: 'pointer' }}
+              >
+                {savingAdminJudgment ? 'Saving…' : 'Save judgment'}
+              </button>
+            </div>
+          )}
+        </div>
 
-            {suggestions.length === 0 && (
-              <p style={{ color: '#5F5E5A', fontSize: 13, marginBottom: 16 }}>No suggestions yet.</p>
-            )}
+        <div style={{ border: '1px solid #B4B2A9', background: '#fff', padding: '20px', marginBottom: 32 }}>
+          <p style={{ fontFamily: 'Georgia, serif', fontSize: 15, color: '#1C2024', marginBottom: 4 }}>
+            User-suggested judgments
+          </p>
+          <p style={{ fontSize: 11, color: '#5F5E5A', marginBottom: 10 }}>
+            All record IDs use UTC for date and time.
+          </p>
 
-            {suggestions.map((s) => {
-              const suggestionDisplayId = computeDisplayId('S', s.user.username, s.createdAt);
-              const draft = reactionDrafts[s.id] || { value: '', body: '' };
-              const reactions = reactionsBySuggestion[s.id] || [];
-              const isSelectedAsReplyTarget = suggestionReplyToId === s.id;
+          {suggestions.length === 0 && (
+            <p style={{ color: '#5F5E5A', fontSize: 13, marginBottom: 16 }}>No suggestions yet.</p>
+          )}
 
-              return (
-                <div
-                  key={s.id}
-                  style={{
-                    marginBottom: 20,
-                    paddingBottom: 16,
-                    borderBottom: '1px solid #E8E4DA',
-                    background: isSelectedAsReplyTarget ? '#FFF9E6' : 'transparent',
-                    border: isSelectedAsReplyTarget ? '1px solid #B8860B' : 'none',
-                    padding: isSelectedAsReplyTarget ? '10px' : '0 0 16px 0',
-                    cursor: isAuthenticated ? 'pointer' : 'default',
-                  }}
-                  onClick={() => isAuthenticated && setSuggestionReplyToId(s.id)}
-                >
-                  <p style={{ fontWeight: 'bold', color: '#1D4ED8', fontSize: 11, marginBottom: 4 }}>
-                    {s.user.username}'s suggestion — {suggestionDisplayId}
-                    {s.replyTo && ` to ${computeDisplayId('S', s.replyTo.user.username, s.replyTo.createdAt)}`}
-                    {isSelectedAsReplyTarget && ' — replying to this'}
-                  </p>
-                  <BalanceScale value={s.value} width={180} />
-                  <p style={{ fontSize: 12, color: '#5F5E5A', marginTop: 4 }}>
-                    Filed {new Date(s.createdAt).toLocaleDateString('en-GB', { year: 'numeric', month: 'short', day: 'numeric' })}
-                  </p>
-                  {s.reasoning && (
-                    <p style={{ fontSize: 13, color: '#1C2024', marginTop: 4, marginBottom: 8 }}>{s.reasoning}</p>
-                  )}
+          {suggestions.map((s) => {
+            const suggestionDisplayId = computeDisplayId('S', s.user.username, s.createdAt);
+            const draft = reactionDrafts[s.id] || { value: '', body: '' };
+            const reactions = reactionsBySuggestion[s.id] || [];
+            const isSelectedAsReplyTarget = suggestionReplyToId === s.id;
 
-                  {reactions.map((r) => (
-                    <div key={r.id} style={{ marginLeft: 20, marginTop: 10, paddingLeft: 12, borderLeft: '2px solid #B4B2A9' }}>
-                      <p style={{ fontWeight: 'bold', color: '#1D4ED8', fontSize: 11, marginBottom: 4 }}>
-                        {r.user.username} reacts to {suggestionDisplayId}
-                      </p>
-                      {r.value !== null && r.value !== undefined && (
-                        <BalanceScale value={r.value} width={140} />
-                      )}
-                      <p style={{ fontSize: 13, color: '#1C2024', marginTop: 4 }}>{r.body}</p>
-                      <p style={{ fontSize: 11, color: '#5F5E5A' }}>
-                        {computeDisplayId('R', r.user.username, r.createdAt)}
-                      </p>
-                    </div>
-                  ))}
+            return (
+              <div
+                key={s.id}
+                style={{
+                  marginBottom: 20,
+                  paddingBottom: 16,
+                  borderBottom: '1px solid #E8E4DA',
+                  background: isSelectedAsReplyTarget ? '#FFF9E6' : 'transparent',
+                  border: isSelectedAsReplyTarget ? '1px solid #B8860B' : 'none',
+                  padding: isSelectedAsReplyTarget ? '10px' : '0 0 16px 0',
+                  cursor: isAuthenticated ? 'pointer' : 'default',
+                }}
+                onClick={() => isAuthenticated && setSuggestionReplyToId(s.id)}
+              >
+                <p style={{ fontWeight: 'bold', color: '#1D4ED8', fontSize: 11, marginBottom: 4 }}>
+                  {s.user.username}'s suggestion — {suggestionDisplayId}
+                  {s.replyTo && ` to ${computeDisplayId('S', s.replyTo.user.username, s.replyTo.createdAt)}`}
+                  {isSelectedAsReplyTarget && ' — replying to this'}
+                </p>
+                <JudgmentBreakdown entries={s.entries} />
+                <p style={{ fontSize: 12, color: '#5F5E5A', marginTop: 6 }}>
+                  Filed {new Date(s.createdAt).toLocaleDateString('en-GB', { year: 'numeric', month: 'short', day: 'numeric' })}
+                </p>
 
-                  {isAuthenticated && (
-                    <div style={{ marginLeft: 20, marginTop: 10 }} onClick={(e) => e.stopPropagation()}>
-                      <div style={{ display: 'flex', gap: 8, marginBottom: 6 }}>
-                        <input
-                          type="number"
-                          min={-1000}
-                          max={1000}
-                          placeholder="Value (optional)"
-                          value={draft.value}
-                          onChange={(e) => setReactionDrafts((prev) => ({ ...prev, [s.id]: { ...draft, value: e.target.value } }))}
-                          style={{ ...inputStyle, width: 140 }}
-                        />
-                      </div>
-                      <textarea
-                        placeholder="Your reaction"
-                        value={draft.body}
-                        onChange={(e) => setReactionDrafts((prev) => ({ ...prev, [s.id]: { ...draft, body: e.target.value } }))}
-                        style={{ ...inputStyle, height: 50, resize: 'vertical', marginBottom: 6 }}
+                {reactions.map((r) => (
+                  <div key={r.id} style={{ marginLeft: 20, marginTop: 10, paddingLeft: 12, borderLeft: '2px solid #B4B2A9' }}>
+                    <p style={{ fontWeight: 'bold', color: '#1D4ED8', fontSize: 11, marginBottom: 4 }}>
+                      {r.user.username} reacts to {suggestionDisplayId}
+                    </p>
+                    {r.value !== null && r.value !== undefined && (
+                      <BalanceScale value={r.value} width={140} />
+                    )}
+                    <p style={{ fontSize: 13, color: '#1C2024', marginTop: 4 }}>{r.body}</p>
+                    <p style={{ fontSize: 11, color: '#5F5E5A' }}>
+                      {computeDisplayId('R', r.user.username, r.createdAt)}
+                    </p>
+                  </div>
+                ))}
+
+                {isAuthenticated && (
+                  <div style={{ marginLeft: 20, marginTop: 10 }} onClick={(e) => e.stopPropagation()}>
+                    <div style={{ display: 'flex', gap: 8, marginBottom: 6 }}>
+                      <input
+                        type="number"
+                        min={-1000}
+                        max={1000}
+                        placeholder="Value (optional)"
+                        value={draft.value}
+                        onChange={(e) => setReactionDrafts((prev) => ({ ...prev, [s.id]: { ...draft, value: e.target.value } }))}
+                        style={{ ...inputStyle, width: 140 }}
                       />
-                      {reactionErrors[s.id] && <p style={{ color: '#7A2E2E', fontSize: 12, marginBottom: 6 }}>{reactionErrors[s.id]}</p>}
-                      <button
-                        onClick={() => handleReactToSuggestion(s.id)}
-                        disabled={reactionSubmitting[s.id]}
-                        style={{ padding: '6px 14px', background: '#1C2024', color: '#fff', border: 'none', fontSize: 12, cursor: 'pointer' }}
-                      >
-                        {reactionSubmitting[s.id] ? 'Submitting…' : 'React'}
-                      </button>
                     </div>
-                  )}
-                </div>
-              );
-            })}
-
-            {isAuthenticated ? (
-              <form onSubmit={handleSubmitSuggestion} style={{ marginTop: 16 }}>
-                {suggestions.length > 0 && (
-                  <p style={{ fontSize: 12, color: suggestionReplyToId ? '#2F5D50' : '#7A2E2E', marginBottom: 8 }}>
-                    {suggestionReplyToId
-                      ? `Replying to ${computeDisplayId('S', suggestions.find((s) => s.id === suggestionReplyToId)?.user.username ?? '', suggestions.find((s) => s.id === suggestionReplyToId)?.createdAt ?? '')}`
-                      : 'Click a suggestion above to select what you\'re replying to.'}
-                  </p>
+                    <textarea
+                      placeholder="Your reaction"
+                      value={draft.body}
+                      onChange={(e) => setReactionDrafts((prev) => ({ ...prev, [s.id]: { ...draft, body: e.target.value } }))}
+                      style={{ ...inputStyle, height: 50, resize: 'vertical', marginBottom: 6 }}
+                    />
+                    {reactionErrors[s.id] && <p style={{ color: '#7A2E2E', fontSize: 12, marginBottom: 6 }}>{reactionErrors[s.id]}</p>}
+                    <button
+                      onClick={() => handleReactToSuggestion(s.id)}
+                      disabled={reactionSubmitting[s.id]}
+                      style={{ padding: '6px 14px', background: '#1C2024', color: '#fff', border: 'none', fontSize: 12, cursor: 'pointer' }}
+                    >
+                      {reactionSubmitting[s.id] ? 'Submitting…' : 'React'}
+                    </button>
+                  </div>
                 )}
-                <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
-                  <input
-                    type="number"
-                    min={-1000}
-                    max={1000}
-                    placeholder="Your value (-1000 to 1000)"
-                    value={suggestionValue}
-                    onChange={(e) => setSuggestionValue(e.target.value)}
-                    style={{ ...inputStyle, width: 200 }}
-                    required
-                  />
-                </div>
-                <textarea
-                  placeholder="Your reasoning (optional)"
-                  value={suggestionReasoning}
-                  onChange={(e) => setSuggestionReasoning(e.target.value)}
-                  style={{ ...inputStyle, height: 60, resize: 'vertical', marginBottom: 8 }}
-                />
-                {suggestionError && <p style={{ color: '#7A2E2E', fontSize: 13, marginBottom: 8 }}>{suggestionError}</p>}
-                <button
-                  type="submit"
-                  disabled={submittingSuggestion}
-                  style={{ padding: '10px 18px', background: '#1C2024', color: '#fff', border: 'none', fontFamily: 'Georgia, serif', cursor: 'pointer' }}
-                >
-                  {submittingSuggestion ? 'Submitting…' : 'Submit suggestion'}
-                </button>
-              </form>
-            ) : (
-              <p style={{ fontSize: 13, color: '#5F5E5A', marginTop: 16 }}>Sign in to suggest a value.</p>
-            )}
-          </div>
+              </div>
+            );
+          })}
+
+          {isAuthenticated ? (
+            <form onSubmit={handleSubmitSuggestion} style={{ marginTop: 16 }}>
+              {suggestions.length > 0 && (
+                <p style={{ fontSize: 12, color: suggestionReplyToId ? '#2F5D50' : '#7A2E2E', marginBottom: 8 }}>
+                  {suggestionReplyToId
+                    ? `Replying to ${computeDisplayId('S', suggestions.find((s) => s.id === suggestionReplyToId)?.user.username ?? '', suggestions.find((s) => s.id === suggestionReplyToId)?.createdAt ?? '')}`
+                    : 'Click a suggestion above to select what you\'re replying to.'}
+                </p>
+              )}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 10 }}>
+                <PairEditor side="NEGATIVE" pairs={suggestionNegatives} onChange={setSuggestionNegatives} color="#7A2E2E" />
+                <PairEditor side="POSITIVE" pairs={suggestionPositives} onChange={setSuggestionPositives} color="#2F5D50" />
+              </div>
+              {suggestionError && <p style={{ color: '#7A2E2E', fontSize: 13, marginBottom: 8 }}>{suggestionError}</p>}
+              <button
+                type="submit"
+                disabled={submittingSuggestion}
+                style={{ padding: '10px 18px', background: '#1C2024', color: '#fff', border: 'none', fontFamily: 'Georgia, serif', cursor: 'pointer' }}
+              >
+                {submittingSuggestion ? 'Submitting…' : 'Submit suggestion'}
+              </button>
+            </form>
+          ) : (
+            <p style={{ fontSize: 13, color: '#5F5E5A', marginTop: 16 }}>Sign in to suggest a judgment.</p>
+          )}
         </div>
 
         <h2 style={{ fontFamily: 'Georgia, serif', fontSize: 18, color: '#1C2024', marginBottom: 16 }}>
@@ -716,6 +826,16 @@ const inputStyle: React.CSSProperties = {
   boxSizing: 'border-box',
 };
 
+const pairInputStyle: React.CSSProperties = {
+  width: '100%',
+  padding: '8px 10px',
+  border: '1px solid #B4B2A9',
+  background: '#fff',
+  fontFamily: 'Inter, system-ui, sans-serif',
+  fontSize: 13,
+  boxSizing: 'border-box',
+};
+
 function badgeStyle(color: string, bg: string): React.CSSProperties {
   return {
     display: 'inline-block',
@@ -725,20 +845,5 @@ function badgeStyle(color: string, bg: string): React.CSSProperties {
     padding: '3px 10px',
     marginTop: 6,
     fontFamily: 'Inter, system-ui, sans-serif',
-  };
-}
-
-function confirmedBadgeStyle(adminScaleValue: number | null): React.CSSProperties {
-  const isCivic = adminScaleValue !== null && adminScaleValue >= 0;
-  return {
-    display: 'inline-block',
-    fontSize: 15,
-    fontWeight: 'bold',
-    fontFamily: 'Georgia, serif',
-    letterSpacing: '0.03em',
-    color: '#fff',
-    background: isCivic ? '#2F5D50' : '#7A2E2E',
-    padding: '6px 16px',
-    marginTop: 8,
   };
 }
