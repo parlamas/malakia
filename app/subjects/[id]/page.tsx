@@ -37,7 +37,7 @@ interface Post {
   publicCapacityJustification: string;
   behavior: Behavior;
   authorUserId: string;
-  author: { username: string };
+  author: { username: string; image: string | null };
   createdAt: string;
   contests: Contest[];
 }
@@ -105,7 +105,7 @@ interface ScaleSuggestion {
   id: string;
   userId: string;
   createdAt: string;
-  user: { username: string };
+  user: { username: string; image: string | null };
   entries: JudgmentEntryData[];
   replyTo: { createdAt: string; user: { username: string } } | null;
   replyToPost: { id: string; createdAt: string; author: { username: string } } | null;
@@ -115,7 +115,7 @@ interface ReactionItem {
   id: string;
   body: string;
   createdAt: string;
-  user: { username: string };
+  user: { username: string; image: string | null };
 }
 
 interface DraftPair {
@@ -204,6 +204,37 @@ function formatBirthDeath(s: SubjectData): string | null {
 function formatConductDate(post: Post): string {
   const base = formatFlexible(post.conductYear, post.conductMonth, post.conductDay, post.conductCirca, post.conductUnknown) ?? 'Date not specified';
   return post.conductEraNote ? `${base} (${post.conductEraNote})` : base;
+}
+
+function Avatar({ username, image, size = 20 }: { username: string; image: string | null; size?: number }) {
+  if (image) {
+    return (
+      <img
+        src={image}
+        alt={username}
+        style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover', verticalAlign: 'middle' }}
+      />
+    );
+  }
+  return (
+    <span
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: size,
+        height: size,
+        borderRadius: '50%',
+        background: '#E8E4DA',
+        color: '#5F5E5A',
+        fontSize: size * 0.5,
+        fontFamily: 'Georgia, serif',
+        verticalAlign: 'middle',
+      }}
+    >
+      {username.charAt(0).toUpperCase()}
+    </span>
+  );
 }
 
 function JudgmentBreakdown({
@@ -504,7 +535,7 @@ export default function SubjectProfilePage() {
   }, [suggestions]);
 
   async function handleReactToSuggestion(suggestionId: string) {
-    const draft = reactionDrafts[suggestionId] || { value: '', body: '' };
+    const draft = reactionDrafts[suggestionId] || { body: '' };
     if (!draft.body) {
       setReactionErrors((prev) => ({ ...prev, [suggestionId]: 'Write a reaction first.' }));
       return;
@@ -513,13 +544,13 @@ export default function SubjectProfilePage() {
     setReactionErrors((prev) => ({ ...prev, [suggestionId]: '' }));
 
     const res = await fetch('/api/reactions', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({
-    scaleSuggestionId: suggestionId,
-    reactionBody: draft.body,
-  }),
-});
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        scaleSuggestionId: suggestionId,
+        reactionBody: draft.body,
+      }),
+    });
 
     setReactionSubmitting((prev) => ({ ...prev, [suggestionId]: false }));
 
@@ -529,7 +560,7 @@ export default function SubjectProfilePage() {
       return;
     }
 
-    setReactionDrafts((prev) => ({ ...prev, [suggestionId]: { value: '', body: '' } }));
+    setReactionDrafts((prev) => ({ ...prev, [suggestionId]: { body: '' } }));
     const refreshed = await fetch(`/api/reactions?scaleSuggestionId=${suggestionId}`).then((r) => r.json());
     setReactionsBySuggestion((prev) => ({ ...prev, [suggestionId]: refreshed.reactions ?? [] }));
   }
@@ -816,7 +847,7 @@ export default function SubjectProfilePage() {
 
           {suggestions.map((s) => {
             const suggestionDisplayId = computeDisplayId('S', s.user.username, s.createdAt);
-            const draft = reactionDrafts[s.id] || { value: '', body: '' };
+            const draft = reactionDrafts[s.id] || { body: '' };
             const reactions = reactionsBySuggestion[s.id] || [];
             const isSelectedAsReplyTarget = replyTarget.type === 'suggestion' && replyTarget.id === s.id;
 
@@ -843,7 +874,8 @@ export default function SubjectProfilePage() {
                 }}
                 onClick={() => isAuthenticated && setReplyTarget({ type: 'suggestion', id: s.id })}
               >
-                <p style={{ fontWeight: 'bold', color: '#1D4ED8', fontSize: 11, marginBottom: 4 }}>
+                <p style={{ fontWeight: 'bold', color: '#1D4ED8', fontSize: 11, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <Avatar username={s.user.username} image={s.user.image} />
                   {s.user.username}'s suggestion — {suggestionDisplayId} — reacting to {targetLabel}
                   {isSelectedAsReplyTarget && ' — replying to this'}
                 </p>
@@ -871,36 +903,37 @@ export default function SubjectProfilePage() {
                 </div>
 
                 {reactions.map((r) => (
-  <div key={r.id} style={{ marginLeft: 20, marginTop: 10, paddingLeft: 12, borderLeft: '2px solid #B4B2A9' }} onClick={(e) => e.stopPropagation()}>
-    <p style={{ fontWeight: 'bold', color: '#1D4ED8', fontSize: 11, marginBottom: 4 }}>
-      {r.user.username} reacts to {suggestionDisplayId}
-    </p>
-    <p style={{ fontSize: 13, color: '#1C2024', marginTop: 4 }}>{r.body}</p>
-    <p style={{ fontSize: 11, color: '#5F5E5A' }}>
-      {computeDisplayId('R', r.user.username, r.createdAt)}
-    </p>
-  </div>
-))}
+                  <div key={r.id} style={{ marginLeft: 20, marginTop: 10, paddingLeft: 12, borderLeft: '2px solid #B4B2A9' }} onClick={(e) => e.stopPropagation()}>
+                    <p style={{ fontWeight: 'bold', color: '#1D4ED8', fontSize: 11, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <Avatar username={r.user.username} image={r.user.image} />
+                      {r.user.username} reacts to {suggestionDisplayId}
+                    </p>
+                    <p style={{ fontSize: 13, color: '#1C2024', marginTop: 4 }}>{r.body}</p>
+                    <p style={{ fontSize: 11, color: '#5F5E5A' }}>
+                      {computeDisplayId('R', r.user.username, r.createdAt)}
+                    </p>
+                  </div>
+                ))}
 
                 {isAuthenticated && (
-  <div style={{ marginLeft: 20, marginTop: 10 }} onClick={(e) => e.stopPropagation()}>
-    <textarea
-      placeholder="Your reaction"
-      maxLength={MAX_JUSTIFICATION_LENGTH}
-      value={draft.body}
-      onChange={(e) => setReactionDrafts((prev) => ({ ...prev, [s.id]: { ...draft, body: e.target.value } }))}
-      style={{ ...inputStyle, height: 50, resize: 'vertical', marginBottom: 6 }}
-    />
-    {reactionErrors[s.id] && <p style={{ color: '#7A2E2E', fontSize: 12, marginBottom: 6 }}>{reactionErrors[s.id]}</p>}
-    <button
-      onClick={() => handleReactToSuggestion(s.id)}
-      disabled={reactionSubmitting[s.id]}
-      style={{ padding: '6px 14px', background: '#1C2024', color: '#fff', border: 'none', fontSize: 12, cursor: 'pointer' }}
-    >
-      {reactionSubmitting[s.id] ? 'Submitting…' : 'React'}
-    </button>
-  </div>
-)}
+                  <div style={{ marginLeft: 20, marginTop: 10 }} onClick={(e) => e.stopPropagation()}>
+                    <textarea
+                      placeholder="Your reaction"
+                      maxLength={MAX_JUSTIFICATION_LENGTH}
+                      value={draft.body}
+                      onChange={(e) => setReactionDrafts((prev) => ({ ...prev, [s.id]: { body: e.target.value } }))}
+                      style={{ ...inputStyle, height: 50, resize: 'vertical', marginBottom: 6 }}
+                    />
+                    {reactionErrors[s.id] && <p style={{ color: '#7A2E2E', fontSize: 12, marginBottom: 6 }}>{reactionErrors[s.id]}</p>}
+                    <button
+                      onClick={() => handleReactToSuggestion(s.id)}
+                      disabled={reactionSubmitting[s.id]}
+                      style={{ padding: '6px 14px', background: '#1C2024', color: '#fff', border: 'none', fontSize: 12, cursor: 'pointer' }}
+                    >
+                      {reactionSubmitting[s.id] ? 'Submitting…' : 'React'}
+                    </button>
+                  </div>
+                )}
               </div>
             );
           })}
@@ -908,8 +941,8 @@ export default function SubjectProfilePage() {
           {isAuthenticated ? (
             <form onSubmit={handleSubmitSuggestion} style={{ marginTop: 16 }}>
               <p style={{ fontSize: 12, color: '#2F5D50', marginBottom: 8 }}>
-  Click on what you wish to target. Currently: <strong>{describeTarget(replyTarget)}</strong>
-</p>
+                Click on what you wish to target. Currently: <strong>{describeTarget(replyTarget)}</strong>
+              </p>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 10 }}>
                 <PairEditor side="NEGATIVE" pairs={suggestionNegatives} onChange={setSuggestionNegatives} color="#7A2E2E" />
                 <PairEditor side="POSITIVE" pairs={suggestionPositives} onChange={setSuggestionPositives} color="#2F5D50" />
@@ -969,23 +1002,22 @@ export default function SubjectProfilePage() {
                   View supporting evidence
                 </a>
               )}
-              <div style={{ marginTop: 10 }} onClick={(e) => e.stopPropagation()}>
+              <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 8 }} onClick={(e) => e.stopPropagation()}>
+                <Avatar username={post.author.username} image={post.author.image} size={18} />
                 <p style={{ fontSize: 12, color: '#5F5E5A', margin: 0, display: 'inline' }}>Filed by {post.author.username}</p>
                 {isAuthenticated && (
-                  <span style={{ marginLeft: 8 }}>
-                    <ReportUserControl
-                      userId={post.authorUserId}
-                      username={post.author.username}
-                      reportingUserId={reportingUserId}
-                      setReportingUserId={setReportingUserId}
-                      reportReason={reportReason}
-                      setReportReason={setReportReason}
-                      reportSubmitting={reportSubmitting}
-                      reportError={reportError}
-                      reportedSuccessfully={reportedSuccessfully}
-                      onSubmit={handleReportUser}
-                    />
-                  </span>
+                  <ReportUserControl
+                    userId={post.authorUserId}
+                    username={post.author.username}
+                    reportingUserId={reportingUserId}
+                    setReportingUserId={setReportingUserId}
+                    reportReason={reportReason}
+                    setReportReason={setReportReason}
+                    reportSubmitting={reportSubmitting}
+                    reportError={reportError}
+                    reportedSuccessfully={reportedSuccessfully}
+                    onSubmit={handleReportUser}
+                  />
                 )}
               </div>
 
