@@ -27,8 +27,9 @@ export async function POST(req: NextRequest) {
   }
 
   const blob = await put(`profile-photos/${user.id}-${Date.now()}-${file.name}`, file, {
-    access: 'public',
-  });
+  access: 'public',
+  token: process.env.BLOB_READ_WRITE_TOKEN_READ_WRITE_TOKEN,
+});
 
   const updated = await prisma.user.update({
     where: { id: user.id },
