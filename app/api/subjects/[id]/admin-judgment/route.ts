@@ -10,6 +10,8 @@ interface EntryInput {
   justification?: string | null;
 }
 
+const MAX_JUSTIFICATION_LENGTH = 500;
+
 function validateEntries(entries: EntryInput[]): string | null {
   if (!Array.isArray(entries)) return 'entries must be an array';
 
@@ -20,6 +22,9 @@ function validateEntries(entries: EntryInput[]): string | null {
     if (e.side !== 'NEGATIVE' && e.side !== 'POSITIVE') return 'Invalid entry side';
     if (!Number.isInteger(e.magnitude) || e.magnitude < 0 || e.magnitude > 1000) {
       return 'Each magnitude must be an integer between 0 and 1000';
+    }
+    if (e.justification && e.justification.length > MAX_JUSTIFICATION_LENGTH) {
+      return `Each justification must be ${MAX_JUSTIFICATION_LENGTH} characters or fewer`;
     }
   }
 

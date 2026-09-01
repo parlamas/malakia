@@ -259,6 +259,7 @@ model Post {
   contests                      Contest[]
   reactions                     Reaction[]
   reports                       Report[]
+  scaleSuggestions              ScaleSuggestion[] @relation("SuggestionRepliesToPost")
   createdAt                     DateTime   @default(now())
 
   @@index([subjectId, axis])
@@ -304,6 +305,9 @@ model ScaleSuggestion {
   replyToId     String?
   replyTo       ScaleSuggestion?  @relation("SuggestionReplies", fields: [replyToId], references: [id])
   replies       ScaleSuggestion[] @relation("SuggestionReplies")
+
+  replyToPostId String?
+  replyToPost   Post?    @relation("SuggestionRepliesToPost", fields: [replyToPostId], references: [id])
 
   createdAt     DateTime @default(now())
 

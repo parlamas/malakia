@@ -10,6 +10,8 @@ interface EntryInput {
   justification?: string | null;
 }
 
+const MAX_JUSTIFICATION_LENGTH = 500;
+
 function validateEntries(entries: EntryInput[]): string | null {
   if (!Array.isArray(entries)) return 'entries must be an array';
 
@@ -20,6 +22,9 @@ function validateEntries(entries: EntryInput[]): string | null {
     if (e.side !== 'NEGATIVE' && e.side !== 'POSITIVE') return 'Invalid entry side';
     if (!Number.isInteger(e.magnitude) || e.magnitude < 0 || e.magnitude > 1000) {
       return 'Each magnitude must be an integer between 0 and 1000';
+    }
+    if (e.justification && e.justification.length > MAX_JUSTIFICATION_LENGTH) {
+      return `Each justification must be ${MAX_JUSTIFICATION_LENGTH} characters or fewer`;
     }
   }
 
@@ -38,10 +43,14 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json();
-  const { subjectId, entries, replyToId } = body;
+  const { subjectId, entries, replyToId, replyToPostId } = body;
 
   if (!subjectId) {
     return NextResponse.json({ error: 'subjectId is required' }, { status: 400 });
+  }
+
+  if (replyToId && replyToPostId) {
+    return NextResponse.json({ error: 'A suggestion can target a prior suggestion or a post, not both' }, { status: 400 });
   }
 
   const subject = await prisma.subject.findUnique({ where: { id: subjectId } });
@@ -49,18 +58,17 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Subject not found' }, { status: 404 });
   }
 
-  const existingCount = await prisma.scaleSuggestion.count({ where: { subjectId } });
-  if (existingCount > 0 && !replyToId) {
-    return NextResponse.json(
-      { error: 'A suggestion must reply to an existing one, unless it is the first for this subject' },
-      { status: 400 },
-    );
-  }
-
   if (replyToId) {
     const target = await prisma.scaleSuggestion.findUnique({ where: { id: replyToId } });
     if (!target || target.subjectId !== subjectId) {
       return NextResponse.json({ error: 'replyToId must reference an existing suggestion on the same subject' }, { status: 400 });
+    }
+  }
+
+  if (replyToPostId) {
+    const target = await prisma.post.findUnique({ where: { id: replyToPostId } });
+    if (!target || target.subjectId !== subjectId) {
+      return NextResponse.json({ error: 'replyToPostId must reference an existing post on the same subject' }, { status: 400 });
     }
   }
 
@@ -79,11 +87,11 @@ export async function POST(req: NextRequest) {
         subjectId,
         userId: user.id,
         replyToId: replyToId || null,
+        replyToPostId: replyToPostId || null,
       },
     });
 
     if (entryList.length === 0) {
-      // All fields left blank — record as a single zero entry
       await tx.suggestionEntry.create({
         data: {
           suggestionId: created.id,
@@ -132,6 +140,7 @@ export async function GET(req: NextRequest) {
       user: { select: { id: true, username: true } },
       entries: { orderBy: { order: 'asc' } },
       replyTo: { include: { user: { select: { id: true, username: true } } } },
+      replyToPost: { include: { author: { select: { username: true } } } },
     },
     orderBy: { createdAt: 'asc' },
   });

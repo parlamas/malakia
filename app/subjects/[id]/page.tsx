@@ -7,6 +7,8 @@ import { useParams } from 'next/navigation';
 import BalanceScale from '@/components/BalanceScale';
 import { computeDisplayId, labelEntries, computeNetValue, computeLabel, JudgmentEntryLike } from '@/lib/displayId';
 
+const MAX_JUSTIFICATION_LENGTH = 500;
+
 interface Behavior {
   label: string;
   description: string;
@@ -103,6 +105,7 @@ interface ScaleSuggestion {
   user: { username: string };
   entries: JudgmentEntryData[];
   replyTo: { createdAt: string; user: { username: string } } | null;
+  replyToPost: { id: string; createdAt: string; author: { username: string } } | null;
 }
 
 interface ReactionItem {
@@ -117,6 +120,11 @@ interface DraftPair {
   magnitude: string;
   justification: string;
 }
+
+type ReplyTarget =
+  | { type: 'admin' }
+  | { type: 'suggestion'; id: string }
+  | { type: 'post'; id: string };
 
 const SUBJECT_TYPE_LABELS: Record<string, string> = {
   PERSON: 'Person',
@@ -196,11 +204,21 @@ function formatConductDate(post: Post): string {
   return post.conductEraNote ? `${base} (${post.conductEraNote})` : base;
 }
 
-// Renders the negative/positive entry breakdown for a judgment (admin or suggestion)
-function JudgmentBreakdown({ entries }: { entries: JudgmentEntryData[] }) {
+// Renders the negative/positive entry breakdown. If adminEntries is provided,
+// the scale reflects admin baseline + these entries combined; otherwise it's
+// just these entries alone (used for the admin's own judgment display).
+function JudgmentBreakdown({
+  entries,
+  adminEntries,
+}: {
+  entries: JudgmentEntryData[];
+  adminEntries?: JudgmentEntryData[];
+}) {
   const labeled = labelEntries(entries as JudgmentEntryLike[]);
-  const net = computeNetValue(entries as JudgmentEntryLike[]);
-  const label = computeLabel(net);
+  const ownNet = computeNetValue(entries as JudgmentEntryLike[]);
+  const baselineNet = adminEntries ? computeNetValue(adminEntries as JudgmentEntryLike[]) : 0;
+  const combinedNet = adminEntries ? baselineNet + ownNet : ownNet;
+  const label = computeLabel(combinedNet);
   const negatives = labeled.filter((e) => e.side === 'NEGATIVE');
   const positives = labeled.filter((e) => e.side === 'POSITIVE');
   const zero = labeled.filter((e) => e.side === 'ZERO');
@@ -209,10 +227,15 @@ function JudgmentBreakdown({ entries }: { entries: JudgmentEntryData[] }) {
 
   return (
     <div>
-      <BalanceScale value={net} />
+      <BalanceScale value={combinedNet} />
       <p style={{ textAlign: 'center', fontWeight: 'bold', color: labelColor, fontFamily: 'Georgia, serif', fontSize: 16, marginTop: 4 }}>
         {label}
       </p>
+      {adminEntries && (
+        <p style={{ textAlign: 'center', fontSize: 11, color: '#5F5E5A', marginTop: 2 }}>
+          combined with admin baseline
+        </p>
+      )}
 
       {zero.length > 0 && (
         <p style={{ fontSize: 13, color: '#5F5E5A', textAlign: 'center' }}>No content submitted (Z).</p>
@@ -250,7 +273,6 @@ function JudgmentBreakdown({ entries }: { entries: JudgmentEntryData[] }) {
   );
 }
 
-// A repeatable "add pair" editor for negative or positive entries
 function PairEditor({
   side,
   pairs,
@@ -293,10 +315,14 @@ function PairEditor({
           <textarea
             placeholder="Justification"
             value={p.justification}
+            maxLength={MAX_JUSTIFICATION_LENGTH}
             onChange={(e) => updatePair(i, 'justification', e.target.value)}
             style={{ ...pairInputStyle, height: 44, resize: 'vertical' }}
           />
-          <button type="button" onClick={() => removePair(i)} style={{ fontSize: 11, color: '#7A2E2E', background: 'none', border: 'none', cursor: 'pointer', marginTop: 4 }}>
+          <p style={{ fontSize: 10, color: '#5F5E5A', textAlign: 'right', margin: '2px 0 0' }}>
+            {p.justification.length}/{MAX_JUSTIFICATION_LENGTH}
+          </p>
+          <button type="button" onClick={() => removePair(i)} style={{ fontSize: 11, color: '#7A2E2E', background: 'none', border: 'none', cursor: 'pointer' }}>
             Remove
           </button>
         </div>
@@ -330,7 +356,7 @@ export default function SubjectProfilePage() {
 
   const [suggestionNegatives, setSuggestionNegatives] = useState<DraftPair[]>([]);
   const [suggestionPositives, setSuggestionPositives] = useState<DraftPair[]>([]);
-  const [suggestionReplyToId, setSuggestionReplyToId] = useState('');
+  const [replyTarget, setReplyTarget] = useState<ReplyTarget>({ type: 'admin' });
   const [submittingSuggestion, setSubmittingSuggestion] = useState(false);
   const [suggestionError, setSuggestionError] = useState('');
   const [suggestionSuccess, setSuggestionSuccess] = useState(false);
@@ -425,11 +451,6 @@ export default function SubjectProfilePage() {
     e.preventDefault();
     setSuggestionError('');
 
-    if (suggestions.length > 0 && !suggestionReplyToId) {
-      setSuggestionError('Click a suggestion above to select what you are replying to.');
-      return;
-    }
-
     const entries = [
       ...pairsToEntries(suggestionNegatives, 'NEGATIVE'),
       ...pairsToEntries(suggestionPositives, 'POSITIVE'),
@@ -443,7 +464,8 @@ export default function SubjectProfilePage() {
       body: JSON.stringify({
         subjectId: id,
         entries,
-        replyToId: suggestionReplyToId || null,
+        replyToId: replyTarget.type === 'suggestion' ? replyTarget.id : null,
+        replyToPostId: replyTarget.type === 'post' ? replyTarget.id : null,
       }),
     });
 
@@ -457,7 +479,7 @@ export default function SubjectProfilePage() {
 
     setSuggestionNegatives([]);
     setSuggestionPositives([]);
-    setSuggestionReplyToId('');
+    setReplyTarget({ type: 'admin' });
     setSuggestionSuccess((s) => !s);
   }
 
@@ -527,6 +549,17 @@ export default function SubjectProfilePage() {
   const { subject, posts, notice } = data;
   const tenure = formatTenure(subject);
   const birthDeath = formatBirthDeath(subject);
+  const adminEntries = subject.adminJudgment?.entries ?? [];
+
+  function describeTarget(t: ReplyTarget): string {
+    if (t.type === 'admin') return "the admin's verdict";
+    if (t.type === 'suggestion') {
+      const s = suggestions.find((s) => s.id === t.id);
+      return s ? computeDisplayId('S', s.user.username, s.createdAt) : 'a suggestion';
+    }
+    const p = posts.find((p) => p.id === t.id);
+    return p ? computeDisplayId('P', p.author.username, p.createdAt) : 'a post';
+  }
 
   return (
     <main style={pageStyle}>
@@ -566,15 +599,15 @@ export default function SubjectProfilePage() {
           <span style={badgeStyle('#B8860B', '#FBF1DC')}>Status not yet confirmed</span>
         )}
         {subject.verificationStatus === 'ADMIN_CONFIRMED' && (
-  <span style={confirmedBadgeStyle(subject.adminJudgment ? computeNetValue(subject.adminJudgment.entries as JudgmentEntryLike[]) : null)}>
-    {(() => {
-      if (!subject.adminJudgment) return 'CONFIRMED';
-      const net = computeNetValue(subject.adminJudgment.entries as JudgmentEntryLike[]);
-      const label = computeLabel(net);
-      return label === 'Controversial' ? 'CONFIRMED — CONTROVERSIAL' : `CONFIRMED — ${label.toUpperCase()}`;
-    })()}
-  </span>
-)}
+          <span style={confirmedBadgeStyle(adminEntries.length > 0 ? computeNetValue(adminEntries as JudgmentEntryLike[]) : null)}>
+            {(() => {
+              if (adminEntries.length === 0) return 'CONFIRMED';
+              const net = computeNetValue(adminEntries as JudgmentEntryLike[]);
+              const label = computeLabel(net);
+              return `CONFIRMED — ${label.toUpperCase()}`;
+            })()}
+          </span>
+        )}
         {subject.verificationStatus === 'DISPUTED' && (
           <span style={badgeStyle('#7A2E2E', '#F3E8E6')}>Disputed</span>
         )}
@@ -612,8 +645,21 @@ export default function SubjectProfilePage() {
           </div>
         )}
 
-        <div style={{ border: '1px solid #B4B2A9', background: '#fff', padding: '20px', marginTop: 28, marginBottom: 32 }}>
-          <p style={monoLabel}>ETHICS JUDGMENT — ADMIN</p>
+        <div
+          style={{
+            border: replyTarget.type === 'admin' ? '2px solid #B8860B' : '1px solid #B4B2A9',
+            background: '#fff',
+            padding: '20px',
+            marginTop: 28,
+            marginBottom: 32,
+            cursor: isAuthenticated ? 'pointer' : 'default',
+          }}
+          onClick={() => isAuthenticated && setReplyTarget({ type: 'admin' })}
+        >
+          <p style={monoLabel}>
+            ETHICS JUDGMENT — ADMIN
+            {replyTarget.type === 'admin' && isAuthenticated && ' — replying to this'}
+          </p>
 
           {subject.adminJudgment ? (
             <JudgmentBreakdown entries={subject.adminJudgment.entries} />
@@ -622,7 +668,7 @@ export default function SubjectProfilePage() {
           )}
 
           {isAdmin && (
-            <div style={{ borderTop: '1px solid #E8E4DA', marginTop: 20, paddingTop: 16 }}>
+            <div style={{ borderTop: '1px solid #E8E4DA', marginTop: 20, paddingTop: 16 }} onClick={(e) => e.stopPropagation()}>
               <p style={{ fontFamily: 'Georgia, serif', fontSize: 14, color: '#1C2024', marginBottom: 10 }}>
                 Set admin judgment (replaces the current one)
               </p>
@@ -647,7 +693,7 @@ export default function SubjectProfilePage() {
             User-suggested judgments
           </p>
           <p style={{ fontSize: 11, color: '#5F5E5A', marginBottom: 10 }}>
-            All record IDs use UTC for date and time.
+            All record IDs use UTC for date and time. Each scale reflects the admin baseline combined with the suggestion's own entries.
           </p>
 
           {suggestions.length === 0 && (
@@ -658,7 +704,16 @@ export default function SubjectProfilePage() {
             const suggestionDisplayId = computeDisplayId('S', s.user.username, s.createdAt);
             const draft = reactionDrafts[s.id] || { value: '', body: '' };
             const reactions = reactionsBySuggestion[s.id] || [];
-            const isSelectedAsReplyTarget = suggestionReplyToId === s.id;
+            const isSelectedAsReplyTarget = replyTarget.type === 'suggestion' && replyTarget.id === s.id;
+
+            let targetLabel: string | null = null;
+            if (s.replyTo) {
+              targetLabel = computeDisplayId('S', s.replyTo.user.username, s.replyTo.createdAt);
+            } else if (s.replyToPost) {
+              targetLabel = computeDisplayId('P', s.replyToPost.author.username, s.replyToPost.createdAt);
+            } else {
+              targetLabel = "the admin's verdict";
+            }
 
             return (
               <div
@@ -672,20 +727,19 @@ export default function SubjectProfilePage() {
                   padding: isSelectedAsReplyTarget ? '10px' : '0 0 16px 0',
                   cursor: isAuthenticated ? 'pointer' : 'default',
                 }}
-                onClick={() => isAuthenticated && setSuggestionReplyToId(s.id)}
+                onClick={() => isAuthenticated && setReplyTarget({ type: 'suggestion', id: s.id })}
               >
                 <p style={{ fontWeight: 'bold', color: '#1D4ED8', fontSize: 11, marginBottom: 4 }}>
-                  {s.user.username}'s suggestion — {suggestionDisplayId}
-                  {s.replyTo && ` to ${computeDisplayId('S', s.replyTo.user.username, s.replyTo.createdAt)}`}
+                  {s.user.username}'s suggestion — {suggestionDisplayId} — reacting to {targetLabel}
                   {isSelectedAsReplyTarget && ' — replying to this'}
                 </p>
-                <JudgmentBreakdown entries={s.entries} />
+                <JudgmentBreakdown entries={s.entries} adminEntries={adminEntries} />
                 <p style={{ fontSize: 12, color: '#5F5E5A', marginTop: 6 }}>
                   Filed {new Date(s.createdAt).toLocaleDateString('en-GB', { year: 'numeric', month: 'short', day: 'numeric' })}
                 </p>
 
                 {reactions.map((r) => (
-                  <div key={r.id} style={{ marginLeft: 20, marginTop: 10, paddingLeft: 12, borderLeft: '2px solid #B4B2A9' }}>
+                  <div key={r.id} style={{ marginLeft: 20, marginTop: 10, paddingLeft: 12, borderLeft: '2px solid #B4B2A9' }} onClick={(e) => e.stopPropagation()}>
                     <p style={{ fontWeight: 'bold', color: '#1D4ED8', fontSize: 11, marginBottom: 4 }}>
                       {r.user.username} reacts to {suggestionDisplayId}
                     </p>
@@ -714,6 +768,7 @@ export default function SubjectProfilePage() {
                     </div>
                     <textarea
                       placeholder="Your reaction"
+                      maxLength={MAX_JUSTIFICATION_LENGTH}
                       value={draft.body}
                       onChange={(e) => setReactionDrafts((prev) => ({ ...prev, [s.id]: { ...draft, body: e.target.value } }))}
                       style={{ ...inputStyle, height: 50, resize: 'vertical', marginBottom: 6 }}
@@ -734,13 +789,9 @@ export default function SubjectProfilePage() {
 
           {isAuthenticated ? (
             <form onSubmit={handleSubmitSuggestion} style={{ marginTop: 16 }}>
-              {suggestions.length > 0 && (
-                <p style={{ fontSize: 12, color: suggestionReplyToId ? '#2F5D50' : '#7A2E2E', marginBottom: 8 }}>
-                  {suggestionReplyToId
-                    ? `Replying to ${computeDisplayId('S', suggestions.find((s) => s.id === suggestionReplyToId)?.user.username ?? '', suggestions.find((s) => s.id === suggestionReplyToId)?.createdAt ?? '')}`
-                    : 'Click a suggestion above to select what you\'re replying to.'}
-                </p>
-              )}
+              <p style={{ fontSize: 12, color: '#2F5D50', marginBottom: 8 }}>
+                Replying to {describeTarget(replyTarget)}. Click the admin verdict or any suggestion/post above to change.
+              </p>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 10 }}>
                 <PairEditor side="NEGATIVE" pairs={suggestionNegatives} onChange={setSuggestionNegatives} color="#7A2E2E" />
                 <PairEditor side="POSITIVE" pairs={suggestionPositives} onChange={setSuggestionPositives} color="#2F5D50" />
@@ -770,9 +821,23 @@ export default function SubjectProfilePage() {
         {posts.map((post) => {
           const color = post.axis === 'CALLOUS' ? '#7A2E2E' : '#2F5D50';
           const postDisplayId = computeDisplayId('P', post.author.username, post.createdAt);
+          const isSelectedAsReplyTarget = replyTarget.type === 'post' && replyTarget.id === post.id;
           return (
-            <div key={post.id} style={{ border: '1px solid #B4B2A9', background: '#fff', padding: '16px 20px', marginBottom: 16 }}>
-              <p style={{ fontWeight: 'bold', color: '#1D4ED8', fontSize: 11, marginBottom: 6 }}>{postDisplayId}</p>
+            <div
+              key={post.id}
+              style={{
+                border: isSelectedAsReplyTarget ? '1px solid #B8860B' : '1px solid #B4B2A9',
+                background: isSelectedAsReplyTarget ? '#FFF9E6' : '#fff',
+                padding: '16px 20px',
+                marginBottom: 16,
+                cursor: isAuthenticated ? 'pointer' : 'default',
+              }}
+              onClick={() => isAuthenticated && setReplyTarget({ type: 'post', id: post.id })}
+            >
+              <p style={{ fontWeight: 'bold', color: '#1D4ED8', fontSize: 11, marginBottom: 6 }}>
+                {postDisplayId}
+                {isSelectedAsReplyTarget && ' — replying to this'}
+              </p>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
                 <span style={{ color, fontFamily: 'Georgia, serif', fontSize: 15 }}>{post.behavior.label}</span>
                 <span style={monoLabel}>{formatConductDate(post)}</span>
@@ -782,7 +847,7 @@ export default function SubjectProfilePage() {
                 Justification: {post.publicCapacityJustification}
               </p>
               {post.evidenceUrl && (
-                <a href={post.evidenceUrl} target="_blank" rel="noreferrer" style={{ fontSize: 13, color: '#1C2024' }}>
+                <a href={post.evidenceUrl} target="_blank" rel="noreferrer" style={{ fontSize: 13, color: '#1C2024' }} onClick={(e) => e.stopPropagation()}>
                   View supporting evidence
                 </a>
               )}
