@@ -384,7 +384,6 @@ model Reaction {
   contestId         String?
   contest           Contest?          @relation(fields: [contestId], references: [id])
 
-  value             Int?              // -1000 to +1000, optional numeric reaction
   body              String            // free text — users write what they want
 
   createdAt         DateTime          @default(now())

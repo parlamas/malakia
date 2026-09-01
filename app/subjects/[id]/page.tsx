@@ -113,7 +113,6 @@ interface ScaleSuggestion {
 
 interface ReactionItem {
   id: string;
-  value: number | null;
   body: string;
   createdAt: string;
   user: { username: string };
@@ -453,7 +452,7 @@ export default function SubjectProfilePage() {
   const [verifyError, setVerifyError] = useState('');
 
   const [reactionsBySuggestion, setReactionsBySuggestion] = useState<Record<string, ReactionItem[]>>({});
-  const [reactionDrafts, setReactionDrafts] = useState<Record<string, { value: string; body: string }>>({});
+  const [reactionDrafts, setReactionDrafts] = useState<Record<string, { body: string }>>({});
   const [reactionSubmitting, setReactionSubmitting] = useState<Record<string, boolean>>({});
   const [reactionErrors, setReactionErrors] = useState<Record<string, string>>({});
 
@@ -514,14 +513,13 @@ export default function SubjectProfilePage() {
     setReactionErrors((prev) => ({ ...prev, [suggestionId]: '' }));
 
     const res = await fetch('/api/reactions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        scaleSuggestionId: suggestionId,
-        value: draft.value ? Number(draft.value) : null,
-        reactionBody: draft.body,
-      }),
-    });
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    scaleSuggestionId: suggestionId,
+    reactionBody: draft.body,
+  }),
+});
 
     setReactionSubmitting((prev) => ({ ...prev, [suggestionId]: false }));
 
@@ -873,50 +871,36 @@ export default function SubjectProfilePage() {
                 </div>
 
                 {reactions.map((r) => (
-                  <div key={r.id} style={{ marginLeft: 20, marginTop: 10, paddingLeft: 12, borderLeft: '2px solid #B4B2A9' }} onClick={(e) => e.stopPropagation()}>
-                    <p style={{ fontWeight: 'bold', color: '#1D4ED8', fontSize: 11, marginBottom: 4 }}>
-                      {r.user.username} reacts to {suggestionDisplayId}
-                    </p>
-                    {r.value !== null && r.value !== undefined && (
-                      <BalanceScale value={r.value} width={140} />
-                    )}
-                    <p style={{ fontSize: 13, color: '#1C2024', marginTop: 4 }}>{r.body}</p>
-                    <p style={{ fontSize: 11, color: '#5F5E5A' }}>
-                      {computeDisplayId('R', r.user.username, r.createdAt)}
-                    </p>
-                  </div>
-                ))}
+  <div key={r.id} style={{ marginLeft: 20, marginTop: 10, paddingLeft: 12, borderLeft: '2px solid #B4B2A9' }} onClick={(e) => e.stopPropagation()}>
+    <p style={{ fontWeight: 'bold', color: '#1D4ED8', fontSize: 11, marginBottom: 4 }}>
+      {r.user.username} reacts to {suggestionDisplayId}
+    </p>
+    <p style={{ fontSize: 13, color: '#1C2024', marginTop: 4 }}>{r.body}</p>
+    <p style={{ fontSize: 11, color: '#5F5E5A' }}>
+      {computeDisplayId('R', r.user.username, r.createdAt)}
+    </p>
+  </div>
+))}
 
                 {isAuthenticated && (
-                  <div style={{ marginLeft: 20, marginTop: 10 }} onClick={(e) => e.stopPropagation()}>
-                    <div style={{ display: 'flex', gap: 8, marginBottom: 6 }}>
-                      <input
-                        type="number"
-                        min={-1000}
-                        max={1000}
-                        placeholder="Value (optional)"
-                        value={draft.value}
-                        onChange={(e) => setReactionDrafts((prev) => ({ ...prev, [s.id]: { ...draft, value: e.target.value } }))}
-                        style={{ ...inputStyle, width: 140 }}
-                      />
-                    </div>
-                    <textarea
-                      placeholder="Your reaction"
-                      maxLength={MAX_JUSTIFICATION_LENGTH}
-                      value={draft.body}
-                      onChange={(e) => setReactionDrafts((prev) => ({ ...prev, [s.id]: { ...draft, body: e.target.value } }))}
-                      style={{ ...inputStyle, height: 50, resize: 'vertical', marginBottom: 6 }}
-                    />
-                    {reactionErrors[s.id] && <p style={{ color: '#7A2E2E', fontSize: 12, marginBottom: 6 }}>{reactionErrors[s.id]}</p>}
-                    <button
-                      onClick={() => handleReactToSuggestion(s.id)}
-                      disabled={reactionSubmitting[s.id]}
-                      style={{ padding: '6px 14px', background: '#1C2024', color: '#fff', border: 'none', fontSize: 12, cursor: 'pointer' }}
-                    >
-                      {reactionSubmitting[s.id] ? 'Submitting…' : 'React'}
-                    </button>
-                  </div>
-                )}
+  <div style={{ marginLeft: 20, marginTop: 10 }} onClick={(e) => e.stopPropagation()}>
+    <textarea
+      placeholder="Your reaction"
+      maxLength={MAX_JUSTIFICATION_LENGTH}
+      value={draft.body}
+      onChange={(e) => setReactionDrafts((prev) => ({ ...prev, [s.id]: { ...draft, body: e.target.value } }))}
+      style={{ ...inputStyle, height: 50, resize: 'vertical', marginBottom: 6 }}
+    />
+    {reactionErrors[s.id] && <p style={{ color: '#7A2E2E', fontSize: 12, marginBottom: 6 }}>{reactionErrors[s.id]}</p>}
+    <button
+      onClick={() => handleReactToSuggestion(s.id)}
+      disabled={reactionSubmitting[s.id]}
+      style={{ padding: '6px 14px', background: '#1C2024', color: '#fff', border: 'none', fontSize: 12, cursor: 'pointer' }}
+    >
+      {reactionSubmitting[s.id] ? 'Submitting…' : 'React'}
+    </button>
+  </div>
+)}
               </div>
             );
           })}

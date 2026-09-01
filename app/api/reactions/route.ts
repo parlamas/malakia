@@ -11,23 +11,15 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json();
-  const { postId, scaleSuggestionId, contestId, value, reactionBody } = body;
+  const { postId, scaleSuggestionId, contestId, reactionBody } = body;
 
-  if (!postId && !scaleSuggestionId && !contestId) {
-    return NextResponse.json({ error: 'A reaction must reference a post, scale suggestion, or contest' }, { status: 400 });
-  }
+if (!postId && !scaleSuggestionId && !contestId) {
+  return NextResponse.json({ error: 'A reaction must reference a post, scale suggestion, or contest' }, { status: 400 });
+}
 
-  if (!reactionBody) {
-    return NextResponse.json({ error: 'reactionBody (text) is required' }, { status: 400 });
-  }
-
-  let numericValue: number | null = null;
-  if (value !== undefined && value !== null && value !== '') {
-    numericValue = Number(value);
-    if (!Number.isInteger(numericValue) || numericValue < -1000 || numericValue > 1000) {
-      return NextResponse.json({ error: 'value must be an integer between -1000 and 1000' }, { status: 400 });
-    }
-  }
+if (!reactionBody) {
+  return NextResponse.json({ error: 'reactionBody (text) is required' }, { status: 400 });
+}
 
   if (scaleSuggestionId) {
     const suggestion = await prisma.scaleSuggestion.findUnique({ where: { id: scaleSuggestionId } });
@@ -49,15 +41,14 @@ export async function POST(req: NextRequest) {
   }
 
   const reaction = await prisma.reaction.create({
-    data: {
-      userId: user.id,
-      postId: postId || null,
-      scaleSuggestionId: scaleSuggestionId || null,
-      contestId: contestId || null,
-      value: numericValue,
-      body: reactionBody,
-    },
-  });
+  data: {
+    userId: user.id,
+    postId: postId || null,
+    scaleSuggestionId: scaleSuggestionId || null,
+    contestId: contestId || null,
+    body: reactionBody,
+  },
+});
 
   return NextResponse.json({ reaction }, { status: 201 });
 }
