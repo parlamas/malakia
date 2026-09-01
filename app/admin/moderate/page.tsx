@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react';
 interface PendingPost {
   id: string;
   axis: 'CALLOUS' | 'CIVIC';
+  behaviorLabel: string;
   narrative: string;
   evidenceUrl: string | null;
   conductYear: number;
@@ -14,7 +15,6 @@ interface PendingPost {
   conductDay: number | null;
   conductEraNote: string | null;
   publicCapacityJustification: string;
-  behavior: { label: string };
   author: { username: string };
   subject: { displayName: string; roleTitle: string | null; associatedContext: string | null };
 }
@@ -229,7 +229,7 @@ export default function ModerationQueuePage() {
           return (
             <div key={post.id} style={{ border: '1px solid #B4B2A9', background: '#fff', padding: '18px 20px', marginBottom: 16 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                <span style={{ color, fontFamily: 'Georgia, serif', fontSize: 15 }}>{post.behavior.label}</span>
+                <span style={{ color, fontFamily: 'Georgia, serif', fontSize: 15 }}>{post.behaviorLabel}</span>
                 <span style={monoLabel}>{formatConductDate(post)}</span>
               </div>
 
