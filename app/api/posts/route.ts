@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
   const body = await req.json();
   const {
     axis,
-    behaviorId,
+    behaviorLabel,
     narrative,
     evidenceUrl,
     conductYear,
@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
     subject, // { existingSubjectId? } OR { subjectType, displayName, description?, ...type-specific fields }
   } = body;
 
-  if (!axis || !behaviorId || !narrative || !publicCapacityJustification || !subject) {
+  if (!axis || !behaviorLabel || !narrative || !publicCapacityJustification || !subject) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
   }
 
@@ -34,9 +34,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'A conduct year is required' }, { status: 400 });
   }
 
-  const behavior = await prisma.behavior.findUnique({ where: { id: behaviorId } });
-  if (!behavior || !behavior.active || behavior.axis !== axis) {
-    return NextResponse.json({ error: 'Invalid behavior for this axis' }, { status: 400 });
+  if (!behaviorLabel.trim()) {
+    return NextResponse.json({ error: 'behaviorLabel is required' }, { status: 400 });
+  }
+  if (behaviorLabel.length > 200) {
+    return NextResponse.json({ error: 'behaviorLabel must be 200 characters or fewer' }, { status: 400 });
   }
 
   try {
@@ -115,7 +117,7 @@ export async function POST(req: NextRequest) {
           authorUserId: user.id,
           subjectId: subjectRecord.id,
           axis,
-          behaviorId,
+          behaviorLabel,
           narrative,
           evidenceUrl,
           conductYear,
@@ -175,7 +177,7 @@ export async function GET(req: NextRequest) {
       ...(subjectId ? { subjectId } : {}),
       ...(axis ? { axis } : {}),
     },
-    include: { behavior: true, subject: true, contests: true },
+    include: { subject: true, contests: true },
     orderBy: { createdAt: 'desc' },
   });
 

@@ -11,10 +11,10 @@ export async function GET() {
   }
 
   const pending = await prisma.post.findMany({
-    where: { status: 'PENDING' },
-    include: { author: { select: { id: true, username: true } }, subject: true, behavior: true },
-    orderBy: { createdAt: 'asc' },
-  });
+  where: { status: 'PENDING' },
+  include: { author: { select: { id: true, username: true } }, subject: true },
+  orderBy: { createdAt: 'asc' },
+});
 
   return NextResponse.json({ pending });
 }

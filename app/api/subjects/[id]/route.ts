@@ -15,7 +15,6 @@ export async function GET(
       posts: {
         where: { status: 'PUBLISHED' },
         include: {
-          behavior: true,
           author: { select: { id: true, username: true, image: true } },
           contests: {
             include: { contestingUser: { select: { id: true, username: true } } },

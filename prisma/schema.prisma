@@ -228,16 +228,6 @@ adminJudgment       AdminJudgment?
   @@index([subjectType])
 }
 
-model Behavior {
-  id          String   @id @default(cuid())
-  axis        Axis
-  label       String   @unique
-  description String
-  active      Boolean  @default(true) // retire without breaking historical posts
-
-  posts       Post[]
-}
-
 model Post {
   id                            String     @id @default(cuid())
   authorUserId                  String
@@ -247,8 +237,7 @@ model Post {
   subject                       Subject    @relation(fields: [subjectId], references: [id])
 
   axis                          Axis
-  behaviorId                    String
-  behavior                      Behavior   @relation(fields: [behaviorId], references: [id])
+  behaviorLabel                 String     // free text — what specifically happened, in the filer's own words
 
   narrative                     String
   evidenceUrl                   String?
