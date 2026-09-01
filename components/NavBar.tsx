@@ -10,6 +10,7 @@ export default function NavBar() {
     authenticated: boolean
     username?: string
     isAdmin?: boolean
+    image?: string | null
   } | null>(null)
 
   const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -24,6 +25,37 @@ export default function NavBar() {
         setUser({ authenticated: false })
       })
   }, [])
+
+  function renderAvatar(size: number) {
+    if (!user?.username) return null;
+    if (user.image) {
+      return (
+        <img
+          src={user.image}
+          alt={user.username}
+          style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover' }}
+        />
+      );
+    }
+    return (
+      <span
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: size,
+          height: size,
+          borderRadius: '50%',
+          background: '#E8E4DA',
+          color: '#5F5E5A',
+          fontSize: size * 0.5,
+          fontFamily: 'Georgia, serif',
+        }}
+      >
+        {user.username.charAt(0).toUpperCase()}
+      </span>
+    );
+  }
 
   return (
     <nav className="bg-[#f5f5dc] w-full">
@@ -72,6 +104,7 @@ style={{ marginLeft: '40px' }}
           ADMIN
         </span>
       )}
+      {renderAvatar(24)}
       <span className="text-black font-medium">
         {user.username}
       </span>
@@ -115,6 +148,14 @@ style={{ marginLeft: '40px' }}
   Browse records
 </Link>
 
+            <Link
+              href="/profile"
+              className="text-gray-700 hover:text-blue-600 transition-colors text-sm"
+              onClick={() => setIsMenuOpen(false)}
+            >
+              My profile
+            </Link>
+
             {user?.isAdmin && (
               <Link
                 href="/admin/moderate"
@@ -142,6 +183,7 @@ style={{ marginLeft: '40px' }}
                       ADMIN
                     </span>
                   )}
+                  {renderAvatar(20)}
                   <span className="text-black font-medium text-sm">
                     {user.username}
                   </span>
