@@ -809,7 +809,10 @@ export default function SubjectProfilePage() {
   return (
     <main style={pageStyle}>
       <div style={{ maxWidth: 700, margin: '0 auto', fontFamily: 'Inter, system-ui, sans-serif' }}>
-        <p style={monoLabel}>{SUBJECT_TYPE_LABELS[subject.subjectType] ?? subject.subjectType} RECORD</p>
+        <p style={monoLabel}>PUBLIC RECORD</p>
+<p style={{ fontFamily: 'Georgia, serif', fontSize: 16, fontWeight: 'bold', color: '#1C2024', marginTop: 4 }}>
+  Category: {SUBJECT_TYPE_LABELS[subject.subjectType] ?? subject.subjectType}
+</p>
 
         <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start', marginTop: 8 }}>
           {subject.photoUrl && (
